@@ -1,0 +1,3 @@
+#!/bin/bash
+#gcc ghf.c -fopenmp -framework Accelerate -o ghf
+gcc -std=c99 -Wall -Wextra -lm ghf.c -framework Accelerate -o ghf
