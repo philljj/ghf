@@ -6,6 +6,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define E_CONV   0.000000001
+#define MAX_ITER 20
+
 typedef struct {
     double x;
     double y;
@@ -23,7 +26,6 @@ static double get_r_diff_sq(const r_t a, const r_t b);
 static r_t    get_Rp(const size_t mu, const size_t nu);
 static void   build_overlap_matrices(double * S, double * X, double * Y);
 static void   build_overlap(double * S);
-static void   build_overlap_sqrt(double * X, double * S);
 static void   build_density_matrix(double * P, const double * C);
 static void   scf_procedure(const double * S, const double * X,
                             const double * Y, const double * H);
@@ -46,13 +48,15 @@ extern void   dsyev(char* jobz, char* uplo, int* n, double* a, int* lda,
 static void   print_matrix(const double * M, const size_t len,
                            const char * what);
 
-static void   hartree_fock_energy(const double * P, const double * H, const double * F);
+static double hartree_fock_energy(const double * P, const double * H,
+                                  const double * F);
 
 static size_t   n_atoms = 2;
 static size_t   n_ele = 2;
 static double   b_coeff[] = {3.0, 2.0, 1.0, 0.4};
 static size_t   n_coeff;
 static double * basis;
+static size_t   debug = 0;
 
 static r_t      R_list[8] = {{0, 0, 0},
                              {0, 0, 0},
@@ -79,8 +83,11 @@ main(int    argc,
     int    opt = 0;
     size_t threads = 0;
 
-    while ((opt = getopt(argc, argv, "i:t:?")) != -1) {
+    while ((opt = getopt(argc, argv, "di:t:?")) != -1) {
         switch (opt) {
+        case 'd':
+            debug = 1;
+            break;
         case 'i':
             printf("using input file: %s\n", optarg);
             break;
@@ -108,7 +115,7 @@ main(int    argc,
     build_overlap_matrices(S, X, Y);
 
     build_core_hamiltonian(H);
-    print_matrix(H, n_basis, "Core Hamiltonian");
+    if (debug) { print_matrix(H, n_basis, "Core Hamiltonian"); }
 
     scf_procedure(S, X, Y, H);
 
@@ -123,19 +130,35 @@ scf_procedure(const double * S,
               const double * Y,
               const double * H)
 {
+    double   old_energy = 0;
+    double   new_energy = 0;
     double * F = calloc(n_basis * n_basis, sizeof(double));
     double * C = calloc(n_basis * n_basis, sizeof(double));
     double * P = calloc(n_basis * n_basis, sizeof(double));
 
-    for (size_t z = 0; z < 7; ++z) {
+    for (size_t z = 0; z < MAX_ITER; ++z) {
         build_fock(F, H, P);
         diag_fock(C, F, X);
         build_density_matrix(P, C);
         population_analysis(P, S, Y);
 
-        hartree_fock_energy(P, H, F);
+        old_energy = new_energy;
+        new_energy = hartree_fock_energy(P, H, F);
 
-        sleep(1);
+        double diff_energy = fabs(new_energy - old_energy);
+
+        if (diff_energy < E_CONV) {
+            printf("SCF converged at %zu iterations.\n", z);
+            printf("Final GHF energy: %.9f\n", new_energy);
+            printf("  dE:          %.9f\n", diff_energy);
+            break;
+        }
+        else {
+            printf("Iteration: %zu.\n", z);
+            printf("  GHF energy: %.9f\n", new_energy);
+            printf("  dE:          %.9f\n", diff_energy);
+            sleep(1);
+        }
     }
 
     return;
@@ -253,7 +276,7 @@ build_overlap_matrices(double * S,
 
     build_overlap(S);
 
-    print_matrix(S, n_basis, "S");
+    if (debug) { print_matrix(S, n_basis, "S"); }
 
     double * U = calloc(n_basis * n_basis, sizeof(double));
     double * eig_val = calloc(n_basis, sizeof(double));
@@ -264,11 +287,11 @@ build_overlap_matrices(double * S,
 
     build_spectral_mat(X, U, eig_val, -0.5);
 
-    print_matrix(X, n_basis, "X");
+    if (debug) { print_matrix(X, n_basis, "X"); }
 
     build_spectral_mat(Y, U, eig_val, 0.5);
 
-    print_matrix(Y, n_basis, "Y");
+    if (debug) { print_matrix(Y, n_basis, "Y"); }
 
     free(U);
     free(eig_val);
@@ -299,7 +322,7 @@ build_density_matrix(double *       P,
         }
     }
 
-    print_matrix(P, n_basis, "P");
+    if (debug) { print_matrix(P, n_basis, "P"); }
 
     return;
 }
@@ -327,7 +350,7 @@ population_analysis(const double * P,
     mult_mat(T, Y, P, n_basis);
     mult_mat(V, T, Y, n_basis);
 
-    print_matrix(V, n_basis, "P in Lowdin basis");
+    if (debug) { print_matrix(V, n_basis, "P in Lowdin basis"); }
 
     return;
 }
@@ -566,7 +589,7 @@ build_fock(double *       F,
         }
     }
 
-    print_matrix(F, n_basis, "Fock matrix");
+    if (debug) { print_matrix(F, n_basis, "Fock matrix"); }
 
     return;
 }
@@ -600,7 +623,7 @@ diag_fock(double *       C,
 
     mult_mat(C, X, Fx, n_basis);
 
-    print_matrix(C, n_basis, "C");
+    if (debug) { print_matrix(C, n_basis, "C"); }
 
 
     free(Fx);
@@ -752,7 +775,7 @@ print_matrix(const double * M,
 
 
 
-static void
+static double
 hartree_fock_energy(const double * P,
                     const double * H,
                     const double * F)
@@ -768,5 +791,5 @@ hartree_fock_energy(const double * P,
 
     printf("scf energy = %6.16f\n", energy);
 
-    return;
+    return energy;
 }
