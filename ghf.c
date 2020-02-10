@@ -50,12 +50,13 @@ static void   print_matrix(const double * M, const size_t len,
 
 static double hartree_fock_energy(const double * P, const double * H,
                                   const double * F);
+static void * safer_calloc(size_t count, size_t size, const char * what);
 
 static size_t   n_atoms = 2;
 static size_t   n_ele = 2;
-static double   b_coeff[] = {3.0, 2.0, 1.0, 0.4};
+static double   basis_set[] = {3.0, 2.0, 1.0, 0.4};
 static size_t   n_coeff;
-static double * basis;
+static double * atom_basis = 0;
 static size_t   debug = 0;
 
 static r_t      R_list[8] = {{0, 0, 0},
@@ -105,12 +106,12 @@ main(int    argc,
 
     init_basis();
 
-    double * S = calloc(n_basis * n_basis, sizeof(double));
-    double * X = calloc(n_basis * n_basis, sizeof(double));
-    double * Y = calloc(n_basis * n_basis, sizeof(double));
-    double * H = calloc(n_basis * n_basis, sizeof(double));
+    double * S = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+    double * X = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+    double * Y = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+    double * H = safer_calloc(n_basis * n_basis, sizeof(double), 0);
 
-    norm_l = calloc(n_basis, sizeof(double));
+    norm_l = safer_calloc(n_basis, sizeof(double), 0);
 
     build_overlap_matrices(S, X, Y);
 
@@ -132,9 +133,9 @@ scf_procedure(const double * S,
 {
     double   old_energy = 0;
     double   new_energy = 0;
-    double * F = calloc(n_basis * n_basis, sizeof(double));
-    double * C = calloc(n_basis * n_basis, sizeof(double));
-    double * P = calloc(n_basis * n_basis, sizeof(double));
+    double * F = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+    double * C = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+    double * P = safer_calloc(n_basis * n_basis, sizeof(double), 0);
 
     for (size_t z = 0; z < MAX_ITER; ++z) {
         build_fock(F, H, P);
@@ -197,8 +198,8 @@ get_Rp(const size_t mu,
         return Rp;
     }
 
-    double b_mu = basis[mu];
-    double b_nu = basis[nu];
+    double b_mu = atom_basis[mu];
+    double b_nu = atom_basis[nu];
     double b_sum = b_mu + b_nu;
 
     Rp.x = ((b_mu * R_list[mu].x) + (b_nu * R_list[nu].x)) / b_sum;
@@ -227,8 +228,8 @@ build_overlap(double * S)
 
     for (size_t i = 0; i < n_basis; ++i) {
         for (size_t j = 0; j < n_basis; ++j) {
-            b_sum = basis[i] + basis[j];
-            b_pro = basis[i] * basis[j];
+            b_sum = atom_basis[i] + atom_basis[j];
+            b_pro = atom_basis[i] * atom_basis[j];
 
             pref = pow((M_PI / b_sum), 1.5);
 
@@ -278,8 +279,8 @@ build_overlap_matrices(double * S,
 
     if (debug) { print_matrix(S, n_basis, "S"); }
 
-    double * U = calloc(n_basis * n_basis, sizeof(double));
-    double * eig_val = calloc(n_basis, sizeof(double));
+    double * U = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+    double * eig_val = safer_calloc(n_basis, sizeof(double), 0);
 
     memcpy(U, S, n_basis * n_basis * sizeof(double));
 
@@ -334,8 +335,8 @@ population_analysis(const double * P,
                     const double * S,
                     const double * Y)
 {
-    double * T = calloc(n_basis * n_basis, sizeof(double));
-    double * V = calloc(n_basis * n_basis, sizeof(double));
+    double * T = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+    double * V = safer_calloc(n_basis * n_basis, sizeof(double), 0);
 
     mult_mat(T, P, S, n_basis);
 
@@ -361,8 +362,8 @@ void
 build_core_hamiltonian(double * H)
 {
     // Build core Hamiltonian.
-    double * T = calloc(n_basis * n_basis, sizeof(double));
-    double * Z = calloc(n_basis * n_basis, sizeof(double));
+    double * T = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+    double * Z = safer_calloc(n_basis * n_basis, sizeof(double), 0);
 
     double b_sum;
     double b_prod;
@@ -385,8 +386,8 @@ build_core_hamiltonian(double * H)
 
     for (size_t mu = 0; mu < n_basis; ++mu) {
         for (size_t nu = 0; nu < n_basis; ++nu) {
-            b_sum = basis[mu] + basis[nu];
-            b_prod = basis[mu] * basis[nu];
+            b_sum = atom_basis[mu] + atom_basis[nu];
+            b_prod = atom_basis[mu] * atom_basis[nu];
 
             r_sq = get_r_diff_sq(R_list[mu], R_list[nu]);
 
@@ -415,8 +416,8 @@ build_core_hamiltonian(double * H)
     for (size_t mu = 0; mu < n_basis; ++mu) {
         for (size_t nu = 0; nu < mu + 1; ++nu) {
             for (size_t c = 0; c < n_atoms; ++c) {
-                b_sum = basis[mu] + basis[nu];
-                b_prod = basis[mu] * basis[nu];
+                b_sum = atom_basis[mu] + atom_basis[nu];
+                b_prod = atom_basis[mu] * atom_basis[nu];
 
                 r_sq = get_r_diff_sq(R_list[mu], R_list[nu]);
 
@@ -474,11 +475,11 @@ two_elec_int(const size_t a,
 
     double result = 0;
 
-    double ab_sum = basis[a] + basis[b];
-    double cd_sum = basis[c] + basis[d];
+    double ab_sum = atom_basis[a] + atom_basis[b];
+    double cd_sum = atom_basis[c] + atom_basis[d];
     double abcd_sum = ab_sum + cd_sum;
-    double ab_prod = basis[a] * basis[b];
-    double cd_prod = basis[c] * basis[d];
+    double ab_prod = atom_basis[a] * atom_basis[b];
+    double cd_prod = atom_basis[c] * atom_basis[d];
 
     double r_sq_ab = get_r_diff_sq(R_list[a], R_list[b]);
     double r_sq_cd = get_r_diff_sq(R_list[c], R_list[d]);
@@ -533,13 +534,13 @@ call_dsyev(double * C,
         eig_val = c;
     }
     else {
-        eig_val = calloc(n_basis, sizeof(double));
+        eig_val = safer_calloc(n_basis, sizeof(double), 0);
     }
 
     dsyev("Vectors", "Upper", &n, C, &lda, eig_val, &wkopt, &lwork, &info);
 
     lwork = (int) wkopt;
-    work = calloc(lwork, sizeof(double));
+    work = safer_calloc(lwork, sizeof(double), 0);
 
     dsyev("Vectors", "Upper", &n, C, &lda, eig_val, work, &lwork, &info);
 
@@ -613,8 +614,8 @@ diag_fock(double *       C,
     //   C = X C`
     //
 
-    double * Fx = calloc(n_basis * n_basis, sizeof(double));
-    double * T  = calloc(n_basis * n_basis, sizeof(double));
+    double * Fx = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+    double * T  = safer_calloc(n_basis * n_basis, sizeof(double), 0);
 
     mult_mat(T, X, F, n_basis);
     mult_mat(Fx, T, X, n_basis);
@@ -701,7 +702,7 @@ build_spectral_mat(double *       C,
     //   C_ij = U_ik * [s^(exp)]_k * U_kj
     //
 
-    double * s_exp = calloc(n_basis, sizeof(double));
+    double * s_exp = safer_calloc(n_basis, sizeof(double), 0);
 
     for (size_t k = 0; k < n_basis; ++k) {
         s_exp[k] = pow(s[k], exp);
@@ -728,14 +729,14 @@ build_spectral_mat(double *       C,
 static void
 init_basis(void)
 {
-    n_coeff = sizeof(b_coeff) / sizeof(b_coeff[0]);
+    n_coeff = sizeof(basis_set) / sizeof(basis_set[0]);
 
     n_basis = n_atoms * n_coeff;
-    basis = calloc(n_basis, sizeof(double));
+    atom_basis = safer_calloc(n_basis, sizeof(double), 0);
 
     for (size_t a = 0; a < n_atoms; ++a) {
         for (size_t i = 0; i < n_coeff; ++i) {
-            basis[a * n_coeff + i] = b_coeff[i];
+            atom_basis[a * n_coeff + i] = basis_set[i];
         }
     }
 
@@ -792,4 +793,27 @@ hartree_fock_energy(const double * P,
     printf("scf energy = %6.16f\n", energy);
 
     return energy;
+}
+
+
+
+
+static void *
+safer_calloc(size_t       count,
+             size_t       size,
+             const char * what)
+{
+    void * p = calloc(count, size);
+
+    if (!p) {
+        if (what && *what) {
+            fprintf(stderr, "fatal: %s: calloc(%zu, %zu) failed\n", what,
+                    count, size);
+        }
+        else {
+            fprintf(stderr, "fatal: calloc(%zu, %zu) failed\n", count, size);
+        }
+    }
+
+    return p;
 }
