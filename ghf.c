@@ -1,10 +1,15 @@
 #include <ctype.h>
 #include <math.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#if !defined M_PI
+  #define M_PI  3.14159265359
+#endif
 
 #define E_CONV   0.000000001
 #define MAX_ITER 20
@@ -36,6 +41,8 @@ static double two_elec_int(const size_t a, const size_t b,
                                       const size_t c, const size_t d);
 static void   build_fock(double * F, const double * H, const double * P);
 static void   diag_fock(double * C, const double * F, const double * X);
+extern void   dsyev_(char* jobz, char* uplo, int* n, double* a, int* lda,
+                    double* w, double* work, int* lwork, int* info );
 static void   call_dsyev(double * C, double * c);
 static void   sum_mat(double * c, const double * a, const double * b,
                       const size_t len);
@@ -43,8 +50,6 @@ static void   mult_mat(double * C, const double * A, const double * B,
                        const size_t len);
 static void   build_spectral_mat(double * C, const double * U,
                                  const double * s, const double exp);
-extern void   dsyev(char* jobz, char* uplo, int* n, double* a, int* lda,
-                    double* w, double* work, int* lwork, int* info );
 static void   print_matrix(const double * M, const size_t len,
                            const char * what);
 
@@ -537,12 +542,12 @@ call_dsyev(double * C,
         eig_val = safer_calloc(n_basis, sizeof(double), 0);
     }
 
-    dsyev("Vectors", "Upper", &n, C, &lda, eig_val, &wkopt, &lwork, &info);
+    dsyev_("Vectors", "Upper", &n, C, &lda, eig_val, &wkopt, &lwork, &info);
 
     lwork = (int) wkopt;
     work = safer_calloc(lwork, sizeof(double), 0);
 
-    dsyev("Vectors", "Upper", &n, C, &lda, eig_val, work, &lwork, &info);
+    dsyev_("Vectors", "Upper", &n, C, &lda, eig_val, work, &lwork, &info);
 
     free(work);
 
