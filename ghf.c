@@ -385,7 +385,7 @@ build_core_hamiltonian(double * H)
     // Build normalized kinetic energy integrals:
     //
     //   (A|t|B) = ab/(a + b)[3 - r_sq * 2ab/(a + b)] *
-    //             [Pi/(a + b)]^(3/2) * 
+    //             [Pi/(a + b)]^(3/2) *
     //             exp[-r_sq * ab/(a + b)]
     //
 
