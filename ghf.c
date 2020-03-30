@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "basis.h"
+
 #if !defined M_PI
   #define M_PI  3.14159265359
 #endif
@@ -19,11 +21,6 @@ typedef struct {
     double y;
     double z;
 } r_t;
-
-typedef struct {
-    size_t z;
-    r_t    R;
-} atom_t;
 
 static void   print_usage_and_die(void) __attribute__((__noreturn__));
 static void   init_basis(void);
@@ -63,6 +60,7 @@ static double   basis_set[] = {3.0, 2.0, 1.0, 0.4};
 static size_t   n_coeff;
 static double * atom_basis = 0;
 static size_t   debug = 0;
+//static atom_t * atom_list = 0;
 
 static r_t      R_list[8] = {{0, 0, 0},
                              {0, 0, 0},
@@ -86,16 +84,18 @@ main(int    argc,
         print_usage_and_die();
     }
 
-    int    opt = 0;
-    size_t threads = 0;
+    int          opt = 0;
+    size_t       threads = 0;
+    const char * input_file = 0;
 
-    while ((opt = getopt(argc, argv, "di:t:?")) != -1) {
+    while ((opt = getopt(argc, argv, "df:t:?")) != -1) {
         switch (opt) {
         case 'd':
             debug = 1;
             break;
-        case 'i':
+        case 'f':
             printf("using input file: %s\n", optarg);
+            input_file = optarg;
             break;
 
         case 't':
@@ -110,6 +110,10 @@ main(int    argc,
     }
 
     init_basis();
+
+    if (!init_geom_basis(input_file)) {
+        return EXIT_FAILURE;
+    }
 
     double * S = safer_calloc(n_basis * n_basis, sizeof(double), 0);
     double * X = safer_calloc(n_basis * n_basis, sizeof(double), 0);
