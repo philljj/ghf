@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "basis.h"
+#include "log.h"
 
 #define MAX_GEOM_FILE_SIZE 1024
 
@@ -22,6 +23,7 @@ static R_t *        R_list = 0;
 static atom_basis_t basis_map[MAX_Z];
 static char         geom_file[MAX_GEOM_FILE_SIZE];
 static const char * basis_tag = "basis\n";
+static const char * geom_tag = "geometry\n";
 
 /*
 /
@@ -29,11 +31,11 @@ static const char * basis_tag = "basis\n";
 /
 /    basis
 /    h s 3.0 2.0 1.0 0.4
-/    
+/
 /    geometry
 /    h 0 0 0
 /    h 0.75 0 0
-/    
+/
 /  From the basis heading, construct the basis map of exponents
 /  per given element number Z.
 /
@@ -96,8 +98,75 @@ init_basis_map(const char * file)
 
 
 static bool
+get_next_token(double *       v_p,
+               const char * * p_p,
+               int *          left_p)
+{
+    const char * p = *p_p;
+    const char * q = p;
+    bool         done = false;
+    size_t       len = 0;
+
+    while (*q != '\0') {
+        if (*q == ' ') { ++q; break; }
+        if (*q == '\n') { ++q; done = true; break; }
+        ++q;
+    }
+
+    len = (size_t) (p - q);
+    *v_p = atof(p);
+
+    *p_p = q;
+    *left_p -= len;
+
+    return done;
+}
+
+
+
+static bool
 init_atom_list(const char * file)
 {
+    const char * p = strstr(geom_file, geom_tag);
+    int          left = strlen(p);
+    size_t       num_atoms = 0;
+
+    if (!p || !left) {
+        log_error("geometry not listed in file");
+        return false;
+    }
+
+    p += strlen(geom_tag);
+    left -= strlen(geom_tag);
+
+    while (left && *p) {
+        if (num_atoms >= MAX_ATOMS) {
+            log_error("too many atoms in geom file");
+            return false;
+        }
+
+        atom_t * new_atom = &atom_list[num_atoms];
+
+        ++num_atoms;
+
+        if (memcmp(p, "h ", 2) == 0) {
+            new_atom->z = 1;
+            p += 2;
+            left -= 2;
+        } else if (memcmp(p, "he ", 3) == 0) {
+            new_atom->z = 2;
+            p += 3;
+            left -= 3;
+        }
+        else {
+            fprintf(stderr, "error: unsupported element: %s\n", p);
+            return false;
+        }
+
+        get_next_token(&new_atom->R.x, &p, &left);
+        get_next_token(&new_atom->R.y, &p, &left);
+        get_next_token(&new_atom->R.z, &p, &left);
+    }
 
     return true;
 }
@@ -204,24 +273,13 @@ load_shell(size_t         Z,
     int  j = 0;
 
     while (!done) {
-        const char * q = p;
-
-        while (*q != '\0') {
-            if (*q == ' ') { ++q; break; }
-            if (*q == '\n') { ++q; done = true; break; }
-            ++q;
-        }
-
-        size_t len = (size_t) (p - q);
-        double exp = atof(p);
+        double exp = 0;
+        done = get_next_token(&exp, &p, &left);
 
         if (exp == 0) {
             fprintf(stderr, "error: invalid exponent %s\n", p);
             return false;
         }
-
-        p = q;
-        left -= len;
 
         new_shell->exp[j] = exp;
 

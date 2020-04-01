@@ -11,10 +11,10 @@ os=$1
 
 if [ $os == "macos" ]; then
   echo "building for macos"
-  gcc -std=c99 -Wall -Wextra -lm ghf.c basis.c -framework Accelerate -o ghf
+  gcc -std=c99 -Wall -Wextra -lm ghf.c basis.c log.c -framework Accelerate -o ghf
 elif [ $os == "linux" ]; then
   echo "building for linux"
-  gcc -std=c99 -Wall -Wextra -lm -llapacke -llapack ghf.c basis.c -o ghf
+  gcc -std=c99 -Wall -Wextra -lm -llapacke -llapack ghf.c basis.c log.c -o ghf
 else
   echo "tell me how to build on $os"
   exit 1
