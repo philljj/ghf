@@ -17,6 +17,8 @@ static bool init_basis_map(const char * file);
 static bool init_atom_list(const char * file);
 static bool load_geom_file(const char * file);
 static bool load_shell(size_t Z, const char * * geom_line, int * left);
+static void dump_basis_map(void);
+static void dump_atom_list(void);
 
 static atom_t       atom_list[MAX_ATOMS];
 static R_t *        R_list = 0;
@@ -49,6 +51,9 @@ init_geom_basis(const char * file)
     if (!load_geom_file(file)) { return false; }
     if (!init_basis_map(file)) { return false; }
     if (!init_atom_list(file)) { return false; }
+
+    dump_basis_map();
+    dump_atom_list();
 
     return true;
 }
@@ -231,8 +236,8 @@ load_geom_file(const char * file)
 
 static bool
 load_shell(size_t         Z,
-          const char * * geom_line,
-          int *          left_p)
+           const char * * geom_line,
+           int *          left_p)
 {
     const char * p = *geom_line;
     int          left = *left_p;
@@ -259,8 +264,7 @@ load_shell(size_t         Z,
     p += 2;
     left -= 2;
 
-    for (;;) {
-        if (basis_map[Z].shells[i].exp[0] == 0) { break; }
+    while (basis_map[Z].shells[i].exp[0] > 0) { 
         ++i;
         if (i == MAX_SHELLS) { goto error; }
     }
@@ -295,4 +299,43 @@ load_shell(size_t         Z,
 error:
     fprintf(stderr, "error: invalid basis listing: %s\n", p);
     return false;
+}
+
+
+
+static void
+dump_basis_map(void)
+{
+    printf("dump_basis_map\n");
+
+    atom_basis_t * ab;
+
+    for (size_t i = 0; i < MAX_Z; ++i) {
+        ab = &basis_map[i];
+
+        for (size_t j = 0; j < MAX_SHELLS; ++j) {
+            printf("basis %c\n", ab->shells[j].type);
+
+            for (size_t k = 0; k < MAX_BASIS_PER_ATOM; ++k) {
+                if (ab->shells[j].exp[k] == 0) {
+                    break;
+                }
+
+                printf("%f ", ab->shells[j].exp[k]);
+            }
+
+            printf("\n");
+        }
+    }
+
+    return;
+}
+
+
+
+static void
+dump_atom_list()
+{
+
+    return;
 }
