@@ -22,6 +22,26 @@ typedef struct {
     double z;
 } r_t;
 
+
+struct fock_matrix_t {
+    /*
+    * Fock matrix is nbasis * nbasis square matrix.
+    *
+    * F is the actual Fock matrix array.
+    *
+    * in_memory indicates if 2-electron integrals are stored
+    * or re-calculated on the fly.
+    *
+    * The make_fock callback is loaded based on the type of
+    * SCF calculation to be performed.
+    */
+
+    size_t     nbasis;
+    double *   F;
+    bool       in_memory;
+    void     (*make_fock)(struct fock_matrix_t *f, const double *P);
+};
+
 static void   print_usage_and_die(void) __attribute__((__noreturn__));
 static void   init_basis(void);
 static double get_r_diff_sq(const r_t a, const r_t b);

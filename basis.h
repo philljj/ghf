@@ -8,15 +8,18 @@
 #define MAX_Z              2
 #define MAX_SHELLS         4
 
-// z_basis_t is array of basis exponents per atom
-// basis_map_t is map of these arrays vs atomic number Z (at 0 offset)
-
 struct atom_shell_t {
+    /*
+    * 
+    */
     char   type;                    // s, p, d, ...
     double exp[MAX_BASIS_PER_ATOM]; // List of gaussian exponents.
 };
 
 struct atom_basis_t {
+    /*
+    * An atom is a bundle of MAX_SHELLS.
+    */
     struct atom_shell_t shells[MAX_SHELLS];
 };
 
