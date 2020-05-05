@@ -11,6 +11,11 @@ safer_calloc(size_t       count,
              size_t       size,
              const char * what)
 {
+    if (!count || !size) {
+        fprintf(stderr, "fatal: invalid calloc(%zu, %zu)\n", count, size);
+        exit(1);
+    }
+
     void * p = calloc(count, size);
 
     if (!p) {
@@ -21,6 +26,8 @@ safer_calloc(size_t       count,
         else {
             fprintf(stderr, "fatal: calloc(%zu, %zu) failed\n", count, size);
         }
+
+        exit(1);
     }
 
     return p;

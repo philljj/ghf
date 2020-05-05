@@ -71,6 +71,24 @@ init_geom_basis(const char * file)
     if (!init_basis_set(file)) { return false; }
     if (!init_atom_list(file)) { return false; }
 
+    if (n_coeff == 0) {
+        fprintf(stderr, "error: n_coeff == 0, invalid basis\n");
+        return false;
+    }
+
+    n_basis = n_atoms * n_coeff;
+    atom_basis = safer_calloc(n_basis, sizeof(double), 0);
+
+    for (size_t a = 0; a < n_atoms; ++a) {
+        for (size_t i = 0; i < n_coeff; ++i) {
+            atom_basis[a * n_coeff + i] = basis_set.exp[i];
+        }
+    }
+
+    norm_l = safer_calloc(n_basis, sizeof(double), 0);
+
+    init_R_list();
+
     dump_basis_set();
     dump_atom_list();
 
@@ -160,7 +178,7 @@ init_basis_set(const char * file)
     while (*p != '\0') {
         if ((p - start) == (end - start)) {
             // end of basis listing
-            return true;
+            break;
         }
         else if (isdigit(*p)) {
             if (load_shell(p)) {
@@ -175,22 +193,6 @@ init_basis_set(const char * file)
             p = skip_line(p);
         }
     }
-
-    if (n_coeff == 0) {
-        fprintf(stderr, "error: n_coeff == 0, invalid basis\n");
-        return false;
-    }
-
-    n_basis = n_atoms * n_coeff;
-    atom_basis = safer_calloc(n_basis, sizeof(double), 0);
-
-    for (size_t a = 0; a < n_atoms; ++a) {
-        for (size_t i = 0; i < n_coeff; ++i) {
-            atom_basis[a * n_coeff + i] = basis_set.exp[i];
-        }
-    }
-
-    norm_l = safer_calloc(n_basis, sizeof(double), 0);
 
     return true;
 }
@@ -397,7 +399,15 @@ init_R_list(void)
     *                              {0.7344, 0, 0}};
     */
 
+    R_list = safer_calloc(n_basis, sizeof(r_t), 0);
 
+    for (size_t i = 0; i < n_atoms; ++i) {
+        for (size_t j = 0; j < n_coeff; ++j) {
+            R_list[i * j] = atom_list[i].R;
+        }
+    }
+
+    return;
 }
 
 
