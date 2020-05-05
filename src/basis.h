@@ -8,34 +8,28 @@
 #define MAX_Z              2
 #define MAX_SHELLS         4
 
-struct atom_shell_t {
-    /*
-    * 
-    */
-    char   type;                    // s, p, d, ...
+struct basis_set_t {
     double exp[MAX_BASIS_PER_ATOM]; // List of gaussian exponents.
 };
 
-struct atom_basis_t {
-    /*
-    * An atom is a bundle of MAX_SHELLS.
-    */
-    struct atom_shell_t shells[MAX_SHELLS];
-};
-
-typedef struct atom_basis_t atom_basis_t;
+typedef struct basis_set_t basis_set_t;
 
 typedef struct {
     double x;
     double y;
     double z;
-} R_t;
+} r_t;
 
 typedef struct {
     size_t z;
-    R_t    R;
+    r_t    R;
 } atom_t;
 
 bool init_geom_basis(const char * file);
+void build_overlap(double * S);
+void build_core_hamiltonian(double * H);
+double two_elec_int(const size_t a, const size_t b,
+                    const size_t c, const size_t d);
+size_t get_n_basis(void);
 
 #endif /* if !defined(BASIS_H) */
