@@ -42,9 +42,6 @@ static void   population_analysis(const double * P, const double * S,
                                   const double * Y);
 static void   build_fock(double * F, const double * H, const double * P);
 static void   diag_fock(double * C, const double * F, const double * X);
-extern void   dsyev_(char* jobz, char* uplo, int* n, double* a, int* lda,
-                    double* w, double* work, int* lwork, int* info );
-static void   call_dsyev(double * C, double * c);
 static void   print_matrix(const double * M, const size_t len,
                            const char * what);
 
@@ -246,65 +243,6 @@ population_analysis(const double * P,
     mult_mat(V, T, Y, n_basis);
 
     if (debug) { print_matrix(V, n_basis, "P in Lowdin basis"); }
-
-    return;
-}
-
-
-
-
-
-static void
-call_dsyev(double * C,
-           double * c)
-{
-    //
-    // Pass in matrix C to be diagonalized, and optionally
-    // vector c to receive the eigenvalues. If c is null,
-    // scratch space for eigenvalues is allocated, and eigvals
-    // are not stored.
-    //
-    // Eigenvectors are stored in C.
-    //
-
-    double *   eig_val = 0;
-    double *   work;
-    double     wkopt;
-    int        info;
-    int        lda = n_basis;
-    int        lwork = -1;
-    int        n = n_basis;
-
-    if (c) {
-        eig_val = c;
-    }
-    else {
-        eig_val = safer_calloc(n_basis, sizeof(double), 0);
-    }
-
-    dsyev_("Vectors", "Upper", &n, C, &lda, eig_val, &wkopt, &lwork, &info);
-
-    lwork = (int) wkopt;
-    work = safer_calloc(lwork, sizeof(double), 0);
-
-    dsyev_("Vectors", "Upper", &n, C, &lda, eig_val, work, &lwork, &info);
-
-    free(work);
-
-    if (info) {
-        fprintf(stderr, "error: dsyev failed to compute eigenvalues\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if (!c) {
-        printf("eigenvalues\n");
-        for (size_t i = 0; i < n_basis; ++i) {
-            printf( " %6.16f", eig_val[i]);
-        }
-        printf("\n");
-
-        free(eig_val);
-    }
 
     return;
 }

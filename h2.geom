@@ -3,4 +3,4 @@ basis
 
 geometry
 h 0 0 0
-h 0.75 0 0
+h 0.7122 0 0
