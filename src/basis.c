@@ -21,17 +21,16 @@
 #define MAX_GEOM_FILE_SIZE 1024
 
 static double get_r_diff_sq(const r_t a, const r_t b);
-static r_t    get_Rp(const size_t mu, const size_t nu);
-
-static bool get_next_float(double *v_p, const char **p_p);
-static bool get_next_int(int *v_p, const char **p_p);
-static bool init_basis_set(const char * file);
-static bool init_atom_list(const char * file);
-static void init_R_list(void);
-static bool load_geom_file(const char * file);
-static bool load_shell(const char * p);
-static void dump_basis_set(void);
-static void dump_atom_list(void);
+static void   get_Rp(r_t *Rp, const size_t mu, const size_t nu);
+static bool   get_next_float(double *v_p, const char **p_p);
+static bool   get_next_int(int *v_p, const char **p_p);
+static bool   init_basis_set(const char * file);
+static bool   init_atom_list(const char * file);
+static void   init_R_list(void);
+static bool   load_geom_file(const char * file);
+static bool   load_shell(const char * p);
+static void   dump_basis_set(void);
+static void   dump_atom_list(void);
 static const char * skip_line(const char * p);
 static const char * skip_space(const char * p);
 static const char * skip_float(const char * p);
@@ -616,6 +615,8 @@ build_core_hamiltonian(double * H)
     //   F[t] = (1/2) * sqrt(Pi/t) * erf[sqrt(t)]
     //
 
+    r_t Rp;
+
     for (size_t mu = 0; mu < n_basis; ++mu) {
         for (size_t nu = 0; nu < mu + 1; ++nu) {
             for (size_t c = 0; c < n_atoms; ++c) {
@@ -633,7 +634,7 @@ build_core_hamiltonian(double * H)
                     fo = 1;
                 }
                 else {
-                    r_t Rp = get_Rp(mu, nu);
+                    get_Rp(&Rp, mu, nu);
 
                     t = b_sum * get_r_diff_sq(Rp, R_list[n_coeff * c]);
                     fo = 0.5 * sqrt(M_PI / t) * erf(sqrt(t));
@@ -675,22 +676,28 @@ two_elec_int(const size_t a,
     //
     //   F[t] = (1/2) * sqrt(Pi/t) * erf[sqrt(t)]
     //
+    // TODO: This is hideous.
 
     double result = 0;
 
     double ab_sum = atom_basis[a] + atom_basis[b];
     double cd_sum = atom_basis[c] + atom_basis[d];
+
     double abcd_sum = ab_sum + cd_sum;
+
     double ab_prod = atom_basis[a] * atom_basis[b];
     double cd_prod = atom_basis[c] * atom_basis[d];
 
     double r_sq_ab = get_r_diff_sq(R_list[a], R_list[b]);
     double r_sq_cd = get_r_diff_sq(R_list[c], R_list[d]);
 
-    r_t    R_p = get_Rp(a, b);
-    r_t    R_q = get_Rp(c, d);
+    r_t Rp;
+    r_t Rq;
 
-    double r_sq_pq = get_r_diff_sq(R_p, R_q);
+    get_Rp(&Rp, a, b);
+    get_Rp(&Rq, c, d);
+
+    double r_sq_pq = get_r_diff_sq(Rp, Rq);
 
     double t_1 = 2 * pow(M_PI, 2.5);
     double t_2 = ab_sum * cd_sum * sqrt(abcd_sum);
@@ -700,6 +707,7 @@ two_elec_int(const size_t a,
 
     double fo = 1;
 
+    // TODO: dumb hack.
     if (t > 0.0001) {
         fo = 0.5 * sqrt(M_PI / t) * erf(sqrt(t));
     }
@@ -751,33 +759,32 @@ get_r_diff_sq(const r_t a,
 
 
 
-static r_t
-get_Rp(const size_t mu,
+static void
+get_Rp(r_t *        Rp,
+       const size_t mu,
        const size_t nu)
 {
     //
     // Rp = (a * R_a + b * R_b)/(a + b)
     //
 
-    r_t    Rp;
-
     if (mu == nu) {
-        Rp.x = R_list[mu].x;
-        Rp.y = R_list[mu].y;
-        Rp.z = R_list[mu].z;
+        Rp->x = R_list[mu].x;
+        Rp->y = R_list[mu].y;
+        Rp->z = R_list[mu].z;
 
-        return Rp;
+        return;
     }
 
     double b_mu = atom_basis[mu];
     double b_nu = atom_basis[nu];
     double b_sum = b_mu + b_nu;
 
-    Rp.x = ((b_mu * R_list[mu].x) + (b_nu * R_list[nu].x)) / b_sum;
-    Rp.y = ((b_mu * R_list[mu].y) + (b_nu * R_list[nu].y)) / b_sum;
-    Rp.z = ((b_mu * R_list[mu].z) + (b_nu * R_list[nu].z)) / b_sum;
+    Rp->x = ((b_mu * R_list[mu].x) + (b_nu * R_list[nu].x)) / b_sum;
+    Rp->y = ((b_mu * R_list[mu].y) + (b_nu * R_list[nu].y)) / b_sum;
+    Rp->z = ((b_mu * R_list[mu].z) + (b_nu * R_list[nu].z)) / b_sum;
 
-    return Rp;
+    return;
 }
 
 
