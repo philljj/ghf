@@ -130,17 +130,38 @@ call_dsyev(double * C,
         eig_val = safer_calloc(n_basis, sizeof(double), 0);
     }
 
-    dsyev_("Vectors", "Upper", &n, C, &lda, eig_val, &wkopt, &lwork, &info);
+   /*
+   *  dsyev.f comments:
+   *    If LWORK = -1, then a workspace query is assumed; the routine
+   *    only calculates the optimal size of the WORK array, returns
+   *    this value as the first entry of the WORK array, and no error
+   *    message related to LWORK is issued by XERBLA.
+   */
+
+    dsyev_("V", "U", &n, C, &lda, eig_val, &wkopt, &lwork, &info);
 
     lwork = (int) wkopt;
+
+    if (lwork <= 0) {
+        fprintf(stderr, "error: dsyev: lwork = %d\n", lwork);
+        exit(EXIT_FAILURE);
+    }
+
     work = safer_calloc(lwork, sizeof(double), 0);
 
-    dsyev_("Vectors", "Upper", &n, C, &lda, eig_val, work, &lwork, &info);
+    dsyev_("V", "U", &n, C, &lda, eig_val, work, &lwork, &info);
 
     free(work);
 
-    if (info) {
-        fprintf(stderr, "error: dsyev failed to compute eigenvalues\n");
+    if (info == 0) {
+        // Success. Debug message?
+    }
+    else if (info < 0) {
+        fprintf(stderr, "error: dsyev: illegal value: info = %d\n", info);
+        exit(EXIT_FAILURE);
+    }
+    else if (info > 0) {
+        fprintf(stderr, "error: dsyev: failed to converge: info = %d\n", info);
         exit(EXIT_FAILURE);
     }
 

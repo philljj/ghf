@@ -44,8 +44,9 @@ static void   diag_fock(double * C, const double * F, const double * X);
 static double hartree_fock_energy(const double * P, const double * H,
                                   const double * F);
 
-static size_t   debug = 0;
-static size_t   n_basis = 0;
+static size_t debug = 0;
+static size_t n_basis = 0;
+static size_t sleep_time = 0;
 
 
 
@@ -61,11 +62,12 @@ main(int    argc,
     size_t       threads = 0;
     const char * input_file = 0;
 
-    while ((opt = getopt(argc, argv, "df:t:?")) != -1) {
+    while ((opt = getopt(argc, argv, "dsf:t:?")) != -1) {
         switch (opt) {
         case 'd':
             debug = 1;
             break;
+
         case 'f':
             printf("using input file: %s\n", optarg);
             input_file = optarg;
@@ -74,6 +76,11 @@ main(int    argc,
         case 't':
             threads = strtoul(optarg, 0, 10);
             printf("using threads: %zu\n", threads);
+            break;
+
+        case 's':
+            sleep_time = 1;
+            printf("using sleep: %zu\n", sleep_time);
             break;
 
         case '?':
@@ -139,14 +146,15 @@ scf_procedure(const double * S,
             printf("SCF converged at %zu iterations.\n", z);
             printf("Final GHF energy: %.9f\n", new_energy);
             printf("  dE:          %.9f\n", diff_energy);
-            break;
+            return;
         }
         else {
             printf("Iteration: %zu.\n", z);
             printf("  GHF energy: %.9f\n", new_energy);
             printf("  dE:          %.9f\n", diff_energy);
-            sleep(1);
         }
+
+        if (sleep_time) { sleep(sleep_time); }
     }
 
     return;
@@ -295,10 +303,11 @@ static void
 print_usage_and_die(void)
 {
     fprintf(stderr, "usage:\n");
-    fprintf(stderr, "  ghf -f <path to geom file> [-d]\n");
+    fprintf(stderr, "  ghf -f <path to geom file> [-ds]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "options:\n");
     fprintf(stderr, "  -d    enables debug\n");
+    fprintf(stderr, "  -s    sleep for 1s between iterations\n");
     exit(EXIT_FAILURE);
 }
 
