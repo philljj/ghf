@@ -35,22 +35,16 @@ struct fock_matrix_t {
 
 static void   print_usage_and_die(void) __attribute__((__noreturn__));
 static void   build_overlap_matrices(double * S, double * X, double * Y);
-static void   build_density_matrix(double * P, const double * C);
 static void   scf_procedure(const double * S, const double * X,
                             const double * Y, const double * H);
 static void   population_analysis(const double * P, const double * S,
                                   const double * Y);
 static void   build_fock(double * F, const double * H, const double * P);
 static void   diag_fock(double * C, const double * F, const double * X);
-static void   print_matrix(const double * M, const size_t len,
-                           const char * what);
-
 static double hartree_fock_energy(const double * P, const double * H,
                                   const double * F);
 
-static size_t   n_ele = 2;
 static size_t   debug = 0;
-
 static size_t   n_basis = 0;
 
 
@@ -94,6 +88,11 @@ main(int    argc,
 
     n_basis = get_n_basis();
 
+    if (n_basis == 0) {
+        fprintf(stderr, "error: n_basis == 0\n");
+        return EXIT_FAILURE;
+    }
+
     double * S = safer_calloc(n_basis * n_basis, sizeof(double), 0);
     double * X = safer_calloc(n_basis * n_basis, sizeof(double), 0);
     double * Y = safer_calloc(n_basis * n_basis, sizeof(double), 0);
@@ -128,6 +127,8 @@ scf_procedure(const double * S,
         diag_fock(C, F, X);
         build_density_matrix(P, C);
         population_analysis(P, S, Y);
+
+        if (debug) { print_matrix(P, n_basis, "P"); }
 
         old_energy = new_energy;
         new_energy = hartree_fock_energy(P, H, F);
@@ -191,33 +192,6 @@ build_overlap_matrices(double * S,
     return;
 }
 
-
-
-static void
-build_density_matrix(double *       P,
-                     const double * C)
-{
-    //
-    // Given coefficient matrix C, build density matrix
-    //
-    //   P_ij = 2 Sum[ C_ia * C_ja, a, 0, N_elec / 2]
-    //
-
-    for (size_t i = 0; i < n_basis; ++i) {
-        for (size_t j = 0; j < n_basis; ++j) {
-            P[i * n_basis + j] = 0;
-
-            for (size_t a = 0; a <  n_ele / 2; ++a) {
-                P[i * n_basis + j] += 2 * C[i * n_basis + a] *
-                                          C[j * n_basis + a];
-            }
-        }
-    }
-
-    if (debug) { print_matrix(P, n_basis, "P"); }
-
-    return;
-}
 
 
 
@@ -309,7 +283,6 @@ diag_fock(double *       C,
 
     if (debug) { print_matrix(C, n_basis, "C"); }
 
-
     free(Fx);
     free(T);
 
@@ -327,28 +300,6 @@ print_usage_and_die(void)
 
 
 
-void
-print_matrix(const double * M,
-             const size_t   len,
-             const char *   what)
-{
-    printf("%s\n", what);
-
-    for (size_t mu = 0; mu < len; ++mu) {
-        for (size_t nu = 0; nu < len; ++nu) {
-            printf(" %6.16f", M[mu * len + nu]);
-        }
-
-        printf("\n");
-    }
-
-    printf("\n");
-
-    return;
-}
-
-
-
 static double
 hartree_fock_energy(const double * P,
                     const double * H,
@@ -358,7 +309,7 @@ hartree_fock_energy(const double * P,
 
     for (size_t i = 0; i < n_basis; ++i) {
         for (size_t j = 0; j < n_basis; ++j) {
-            energy += 0.5 * 0.5 * P[i * n_basis + j] *
+            energy +=  0.5 * P[i * n_basis + j] *
                       (H[i * n_basis + j] + F[i * n_basis + j]);
         }
     }

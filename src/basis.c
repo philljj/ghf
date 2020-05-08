@@ -23,6 +23,8 @@
 static double get_r_diff_sq(const r_t a, const r_t b);
 static r_t    get_Rp(const size_t mu, const size_t nu);
 
+static bool get_next_float(double *v_p, const char **p_p);
+static bool get_next_int(int *v_p, const char **p_p);
 static bool init_basis_set(const char * file);
 static bool init_atom_list(const char * file);
 static void init_R_list(void);
@@ -33,22 +35,32 @@ static void dump_atom_list(void);
 static const char * skip_line(const char * p);
 static const char * skip_space(const char * p);
 static const char * skip_float(const char * p);
+static const char * skip_int(const char * p);
 
 static atom_t       atom_list[MAX_ATOMS];
 static double *     atom_basis = 0;
+static int          charge = 0;
 static size_t       n_atoms = 0;
 static size_t       n_basis = 0;
 static size_t       n_coeff = 0;
+static size_t       n_ele = 0;
 static double *     norm_l = 0;
 static r_t *        R_list = 0;
 static basis_set_t  basis_set;
 static char         geom_file[MAX_GEOM_FILE_SIZE];
 static const char * basis_tag = "basis\n";
+static const char * charge_tag = "charge\n";
 static const char * geom_tag = "geometry\n";
 
 /*
 /
 /  A geometry file will have this form:
+/
+/    charge
+/    0
+/
+/    multiplicity
+/    1
 /
 /    basis
 /    3.0 2.0 1.0 0.4
@@ -159,11 +171,11 @@ init_basis_set(const char * file)
 {
     memset(basis_set.exp, 0, sizeof(basis_set.exp));
 
-    const char * p = geom_file;
-    const char * start = geom_file;
+    const char * p = strstr(geom_file, basis_tag);
+    const char * start = p;
     const char * end = strstr(geom_file, geom_tag);
 
-    if (memcmp(geom_file, basis_tag, strlen(basis_tag)) != 0) {
+    if (!p) {
         fprintf(stderr, "error: invalid geometry file %s\n", file);
         return false;
     }
@@ -200,7 +212,7 @@ init_basis_set(const char * file)
 
 
 static bool
-get_next_token(double *       v_p,
+get_next_float(double *       v_p,
                const char * * p_p)
 {
     // Begins at first float:
@@ -215,6 +227,43 @@ get_next_token(double *       v_p,
 
     *v_p = atof(p);
     *p_p = q;
+
+    return done;
+}
+
+
+
+static bool
+get_next_int(int *          v_p,
+             const char * * p_p)
+{
+    // Begins at first int:
+    //   <int> <int> <int>
+    const char * p = *p_p;
+    const char * q = p;
+    bool         done = false;
+    bool         positive = true;
+
+    if (*p == '-') {
+        positive = false;
+        ++p;
+    }
+
+    if (!isdigit(*p)) {
+        fprintf(stderr, "error: string is not an int: %s\n", p);
+        exit(EXIT_FAILURE);
+    }
+
+    q = skip_int(p);
+
+    if (*q == '\n') { ++q; done = true; }
+
+    *v_p = atoi(p);
+    *p_p = q;
+
+    if (!positive) {
+        *v_p *= -1;
+    }
 
     return done;
 }
@@ -245,13 +294,16 @@ init_atom_list(const char * file)
         ++num_atoms;
 
         if (memcmp(p, "g ", strlen("g ")) == 0) {
-            new_atom->z = 0;
+            // Ghost atom, no electrons.
+            new_atom->Z = 0;
             p += 2;
-        } else if (memcmp(p, "h ", strlen("g ")) == 0) {
-            new_atom->z = 1;
+        } else if (memcmp(p, "h ", strlen("h ")) == 0) {
+            n_ele += 1;
+            new_atom->Z = 1;
             p += 2;
         } else if (memcmp(p, "he ", strlen("he ")) == 0) {
-            new_atom->z = 2;
+            n_ele += 2;
+            new_atom->Z = 2;
             p += 3;
         }
         else {
@@ -259,12 +311,46 @@ init_atom_list(const char * file)
             return false;
         }
 
-        get_next_token(&new_atom->R.x, &p);
-        get_next_token(&new_atom->R.y, &p);
-        get_next_token(&new_atom->R.z, &p);
+        get_next_float(&new_atom->R.x, &p);
+        get_next_float(&new_atom->R.y, &p);
+        get_next_float(&new_atom->R.z, &p);
     }
 
     n_atoms = num_atoms;
+
+
+    p = strstr(geom_file, charge_tag);
+
+    if (!p) {
+        fprintf(stderr, "info: assuming neutral charge\n");
+    }
+    else {
+        p += strlen(charge_tag);
+        get_next_int(&charge, &p);
+
+    }
+
+    if (charge > 0) {
+        if ((size_t) charge >= n_ele) {
+            fprintf(stderr, "error: invalid geom file.\n");
+            fprintf(stderr, "       charge: %d\n", charge);
+            fprintf(stderr, "       n_ele:  %zu\n", n_ele);
+            return false;
+        }
+        else {
+            n_ele -= charge;
+        }
+    }
+    else {
+        n_ele += abs(charge);
+    }
+
+    if (n_ele % 2) {
+        fprintf(stderr, "error: odd electrons not allowed in RHF.\n");
+        fprintf(stderr, "       charge: %d\n", charge);
+        fprintf(stderr, "       n_ele:  %zu\n", n_ele);
+        return false;
+    }
 
     return true;
 }
@@ -284,7 +370,7 @@ load_shell(const char * p)
 
     while (!done) {
         double exp = 0;
-        done = get_next_token(&exp, &p);
+        done = get_next_float(&exp, &p);
 
         if (exp <= 0) {
             fprintf(stderr, "error: invalid exponent %s\n", p);
@@ -334,7 +420,7 @@ dump_atom_list()
 {
     for (size_t i = 0; i < n_atoms; ++i) {
         atom_t * atom = &atom_list[i];
-        printf("atom %zu Z=%zu\n", i, atom->z);
+        printf("atom %zu Z=%zu\n", i, atom->Z);
         printf("  x=%f\n", atom->R.x);
         printf("  y=%f\n", atom->R.y);
         printf("  z=%f\n", atom->R.z);
@@ -369,10 +455,22 @@ skip_space(const char * p)
 
 
 
-const char *
+static const char *
 skip_float(const char * p)
 {
     while (isdigit(*p) || *p == '.' || *p == '-') {
+        ++p;
+    }
+
+    return skip_space(p);
+}
+
+
+
+static const char *
+skip_int(const char * p)
+{
+    while (isdigit(*p) || *p == '-') {
         ++p;
     }
 
@@ -479,7 +577,6 @@ build_core_hamiltonian(double * H)
     double t_2;
     double t_3;
     double t_4;
-    double Zc  = 1;
     double fo;
 
     //
@@ -527,7 +624,7 @@ build_core_hamiltonian(double * H)
 
                 r_sq = get_r_diff_sq(R_list[mu], R_list[nu]);
 
-                t_1 = - 2 * M_PI * Zc / b_sum;
+                t_1 = - 2 * M_PI * atom_list[c].Z / b_sum;
 
                 t_2 = exp(-r_sq * b_prod / b_sum);
 
@@ -611,6 +708,32 @@ two_elec_int(const size_t a,
              t_1 * exp(t_3) * fo / t_2;
 
     return result;
+}
+
+
+
+void
+build_density_matrix(double *       P,
+                     const double * C)
+{
+    //
+    // Given coefficient matrix C, build density matrix
+    //
+    //   P_ij = 2 Sum[ C_ia * C_ja, a, 0, N_elec / 2]
+    //
+
+    for (size_t i = 0; i < n_basis; ++i) {
+        for (size_t j = 0; j < n_basis; ++j) {
+            P[i * n_basis + j] = 0;
+
+            for (size_t a = 0; a <  n_ele / 2; ++a) {
+                P[i * n_basis + j] += 2 * C[i * n_basis + a] *
+                                          C[j * n_basis + a];
+            }
+        }
+    }
+
+    return;
 }
 
 

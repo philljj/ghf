@@ -1,0 +1,19 @@
+#!/bin/bash
+run_dir="run"
+
+function dir_exists {
+  if [ $# -eq 0 ]; then
+    echo "dir_exists requires a dir arg"
+    exit 1
+  fi
+
+  dir=$1
+
+  if [ ! -d $dir ]; then
+    mkdir $dir
+  fi
+}
+
+
+dir_exists $run_dir
+cp *\.geom  $run_dir

@@ -21,7 +21,7 @@ typedef struct {
 } r_t;
 
 typedef struct {
-    size_t z;
+    size_t Z;
     r_t    R;
 } atom_t;
 
@@ -30,6 +30,7 @@ void build_overlap(double * S);
 void build_core_hamiltonian(double * H);
 double two_elec_int(const size_t a, const size_t b,
                     const size_t c, const size_t d);
+void   build_density_matrix(double * P, const double * C);
 size_t get_n_basis(void);
 
 #endif /* if !defined(BASIS_H) */

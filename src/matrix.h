@@ -7,4 +7,5 @@ void mult_mat(double * C, const double * A, const double * B,
 void build_spectral_mat(double * C, const double * U,
                         const double * s, const double exp);
 void call_dsyev(double * C, double * c);
+void print_matrix(const double * M, const size_t len, const char * what);
 #endif /* !defined (MATRIX_H) */

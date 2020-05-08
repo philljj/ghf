@@ -21,11 +21,8 @@ sum_mat(double *       C,
     // C = A + B
     //
 
-    for (size_t i = 0; i < len; ++i) {
-        for (size_t j = 0; j < len; ++j) {
-            C[i * len + j] = A[i * len + j] +
-                             B[i * len + j];
-        }
+    for (size_t i = 0; i < len * len; ++i) {
+        C[i] = A[i] + B[i];
     }
 
     return;
@@ -77,6 +74,7 @@ build_spectral_mat(double *       C,
     //
     //   C_ij = U_ik * [s^(exp)]_k * U_kj
     //
+    //  TODO: refactor this so it's n_basis * n_basis in scaling.
 
     size_t   n_basis = get_n_basis();
     double * s_exp = safer_calloc(n_basis, sizeof(double), 0);
@@ -155,6 +153,28 @@ call_dsyev(double * C,
 
         free(eig_val);
     }
+
+    return;
+}
+
+
+
+void
+print_matrix(const double * M,
+             const size_t   len,
+             const char *   what)
+{
+    printf("%s\n", what);
+
+    for (size_t mu = 0; mu < len; ++mu) {
+        for (size_t nu = 0; nu < len; ++nu) {
+            printf(" %6.16f", M[mu * len + nu]);
+        }
+
+        printf("\n");
+    }
+
+    printf("\n");
 
     return;
 }
