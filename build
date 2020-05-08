@@ -1,4 +1,21 @@
 #!/bin/bash
+run_dir="run"
+bin_dir="run/bin"
+
+function dir_exists {
+  if [ $# -eq 0 ]; then
+    echo "dir_exists requires a dir arg"
+    exit 1
+  fi
+
+  dir=$1
+
+  if [ ! -d $dir ]; then
+    "run configure script before trying to build"
+    exit 1
+  fi
+}
+
 if [ $# -eq 0 ]; then
   echo "usage:"
   echo "   build macos"
@@ -9,12 +26,15 @@ fi
 
 os=$1
 
+dir_exists $run_dir
+dir_exists $bin_dir
+
 if [ $os == "macos" ]; then
   echo "building for macos"
-  gcc -std=c99 -Wall -Wextra -lm src/*.c -framework Accelerate -o run/ghf
+  gcc -std=c99 -Wall -Wextra -lm src/*.c -framework Accelerate -o $bin_dir/ghf
 elif [ $os == "linux" ]; then
   echo "building for linux"
-  gcc -std=c99 -g -ggdb -Wall -Wextra -lm -llapacke -llapack src/*.c -o run/ghf
+  gcc -std=c99 -g -ggdb -Wall -Wextra -lm -llapacke -llapack src/*.c -o $bin_dir/ghf
 else
   echo "tell me how to build on $os"
   exit 1

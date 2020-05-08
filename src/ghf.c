@@ -294,7 +294,11 @@ diag_fock(double *       C,
 static void
 print_usage_and_die(void)
 {
-    fprintf(stderr, "usage\n");
+    fprintf(stderr, "usage:\n");
+    fprintf(stderr, "  ghf -f <path to geom file> [-d]\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "options:\n");
+    fprintf(stderr, "  -d    enables debug\n");
     exit(EXIT_FAILURE);
 }
 

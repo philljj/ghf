@@ -1,5 +1,7 @@
 #!/bin/bash
 run_dir="run"
+bin_dir="run/bin"
+geom_dir="run/geom"
 
 function dir_exists {
   if [ $# -eq 0 ]; then
@@ -16,4 +18,6 @@ function dir_exists {
 
 
 dir_exists $run_dir
-cp *\.geom  $run_dir
+dir_exists $bin_dir
+dir_exists $geom_dir
+cp -r geom/*  $geom_dir

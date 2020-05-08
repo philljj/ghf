@@ -1,0 +1,17 @@
+About:
+  This is a Hartree-Fock implementation, based on Szabo/Ostlund's
+  classic "Modern Quantum Chemistry".
+  
+  At the moment only Restricted HF is supported. The goal is to
+  support RHF, UHF, and GHF, and eventually to support DFT or GF2
+  as well.
+  
+  lapack is required. Eventually, OpenMP will be required as well.
+
+  This only works on linux and macos.
+
+Setup:
+  1. run configure script
+  2. run build script
+  3. drink espresso
+  4. that's it
