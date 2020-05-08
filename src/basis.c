@@ -500,7 +500,7 @@ init_R_list(void)
 
     for (size_t i = 0; i < n_atoms; ++i) {
         for (size_t j = 0; j < n_coeff; ++j) {
-            R_list[i * j] = atom_list[i].R;
+            R_list[i * n_coeff +  j] = atom_list[i].R;
         }
     }
 
@@ -793,4 +793,34 @@ size_t
 get_n_basis(void)
 {
     return n_basis;
+}
+
+
+
+double
+nuclear_rep_energy(void)
+{
+    // Calculate nuclear repulsion energy:
+    // 
+    //   Ez = Sum a Sum b Za * Zb / Rab , b > a
+    // 
+
+    double energy = 0;
+    double rsq = 0;
+    size_t Z_i = 0;
+    size_t Z_j = 0;
+
+    for (size_t i = 0; i < n_atoms; ++i) {
+        for (size_t j = i + 1; j < n_atoms; ++j) {
+            Z_i = atom_list[i].Z;
+            Z_j = atom_list[j].Z;
+
+            rsq = get_r_diff_sq(atom_list[i].R, atom_list[j].R);
+            rsq = sqrt(rsq);
+
+            energy += Z_i * Z_j / rsq;
+        }
+    }
+
+    return energy;
 }

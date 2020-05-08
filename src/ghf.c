@@ -125,6 +125,8 @@ scf_procedure(const double * S,
 {
     double   old_energy = 0;
     double   new_energy = 0;
+    double   nuc_energy = nuclear_rep_energy();
+
     double * F = safer_calloc(n_basis * n_basis, sizeof(double), 0);
     double * C = safer_calloc(n_basis * n_basis, sizeof(double), 0);
     double * P = safer_calloc(n_basis * n_basis, sizeof(double), 0);
@@ -145,13 +147,17 @@ scf_procedure(const double * S,
         if (diff_energy < E_CONV) {
             printf("SCF converged at %zu iterations.\n", z);
             printf("Final GHF energy: %.9f\n", new_energy);
-            printf("  dE:          %.9f\n", diff_energy);
+            printf("  nuc rep energy: %.9f\n", nuc_energy);
+            printf("  dE:             %.9f\n", diff_energy);
+            printf("\n");
+            printf("Total GHF energy: %.9f\n", new_energy + nuc_energy);
             return;
         }
         else {
             printf("Iteration: %zu.\n", z);
-            printf("  GHF energy: %.9f\n", new_energy);
-            printf("  dE:          %.9f\n", diff_energy);
+            printf("  electronic energy: %.9f\n", new_energy);
+            printf("  nuc rep energy:    %.9f\n", nuc_energy);
+            printf("  dE:                %.9f\n", diff_energy);
         }
 
         if (sleep_time) { sleep(sleep_time); }
@@ -327,8 +333,5 @@ hartree_fock_energy(const double * P,
         }
     }
 
-    printf("scf energy = %6.16f\n", energy);
-
     return energy;
 }
-

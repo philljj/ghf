@@ -31,6 +31,6 @@ void build_core_hamiltonian(double * H);
 double two_elec_int(const size_t a, const size_t b,
                     const size_t c, const size_t d);
 void   build_density_matrix(double * P, const double * C);
+double nuclear_rep_energy(void);
 size_t get_n_basis(void);
-
 #endif /* if !defined(BASIS_H) */
