@@ -1,6 +1,10 @@
 About:
   This is a Hartree-Fock implementation, based on Szabo/Ostlund's
-  classic "Modern Quantum Chemistry".
+  classic "Modern Quantum Chemistry". The Hartee-Fock method
+  solves the many-body Schrodinger equation by assuming a single
+  Slater determinant approximation for the many-body wavefunction.
+  This describes first-order Coulomb and Exchange interactions
+  exactly, but completely misses higher-order correlation effects.
   
   At the moment only Restricted HF is supported. The goal is to
   support RHF, UHF, and GHF, and eventually to support DFT or GF2
