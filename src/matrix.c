@@ -166,11 +166,13 @@ call_dsyev(double * C,
     }
 
     if (!c) {
-        printf("eigenvalues\n");
-        for (size_t i = 0; i < n_basis; ++i) {
-            printf( " %6.16f", eig_val[i]);
+        if (is_debug()) {
+            printf("eigenvalues\n");
+            for (size_t i = 0; i < n_basis; ++i) {
+                printf( " %6.16f", eig_val[i]);
+            }
+            printf("\n");
         }
-        printf("\n");
 
         free(eig_val);
     }

@@ -44,8 +44,10 @@ static void   diag_fock(double * C, const double * F, const double * X);
 static double hartree_fock_energy(const double * P, const double * H,
                                   const double * F);
 
-static size_t debug = 0;
+// TODO: put options in separate options file? Or package into struct?
+static bool   debug = false;
 static size_t n_basis = 0;
+static bool   quiet = false;
 static size_t sleep_time = 0;
 
 
@@ -62,20 +64,23 @@ main(int    argc,
     size_t       threads = 0;
     const char * input_file = 0;
 
-    while ((opt = getopt(argc, argv, "dsf:t:?")) != -1) {
+    while ((opt = getopt(argc, argv, "dqsf:t:?")) != -1) {
         switch (opt) {
         case 'd':
-            debug = 1;
+            debug = true;
             break;
 
         case 'f':
-            printf("using input file: %s\n", optarg);
             input_file = optarg;
             break;
 
         case 't':
             threads = strtoul(optarg, 0, 10);
             printf("using threads: %zu\n", threads);
+            break;
+
+        case 'q':
+            quiet = true;
             break;
 
         case 's':
@@ -89,7 +94,11 @@ main(int    argc,
         }
     }
 
-    if (!init_geom_basis(input_file)) {
+    if (!quiet) {
+        printf("using input file: %s\n", input_file);
+    }
+
+    if (!init_geom_basis(input_file, debug)) {
         return EXIT_FAILURE;
     }
 
@@ -153,7 +162,7 @@ scf_procedure(const double * S,
             printf("Total GHF energy: %.9f\n", new_energy + nuc_energy);
             return;
         }
-        else {
+        else if (!quiet) {
             printf("Iteration: %zu.\n", z);
             printf("  electronic energy: %.9f\n", new_energy);
             printf("  nuc rep energy:    %.9f\n", nuc_energy);
@@ -214,6 +223,8 @@ population_analysis(const double * P,
                     const double * S,
                     const double * Y)
 {
+    if (quiet) { return; }
+
     double * T = safer_calloc(n_basis * n_basis, sizeof(double), 0);
     double * V = safer_calloc(n_basis * n_basis, sizeof(double), 0);
 

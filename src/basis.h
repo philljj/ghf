@@ -25,7 +25,7 @@ typedef struct {
     r_t    R;
 } atom_t;
 
-bool init_geom_basis(const char * file);
+bool init_geom_basis(const char * file, bool debug);
 void build_overlap(double * S);
 void build_core_hamiltonian(double * H);
 double two_elec_int(const size_t a, const size_t b,
@@ -33,4 +33,5 @@ double two_elec_int(const size_t a, const size_t b,
 void   build_density_matrix(double * P, const double * C);
 double nuclear_rep_energy(void);
 size_t get_n_basis(void);
+bool   is_debug(void);
 #endif /* if !defined(BASIS_H) */

@@ -39,6 +39,7 @@ static const char * skip_int(const char * p);
 static atom_t       atom_list[MAX_ATOMS];
 static double *     atom_basis = 0;
 static int          charge = 0;
+static bool         debug = false;
 static size_t       n_atoms = 0;
 static size_t       n_basis = 0;
 static size_t       n_coeff = 0;
@@ -76,8 +77,11 @@ static const char * geom_tag = "geometry\n";
 */
 
 bool
-init_geom_basis(const char * file)
+init_geom_basis(const char * file,
+                bool         debug_opt)
 {
+    debug = debug_opt;
+
     if (!load_geom_file(file)) { return false; }
     if (!init_basis_set(file)) { return false; }
     if (!init_atom_list(file)) { return false; }
@@ -100,8 +104,10 @@ init_geom_basis(const char * file)
 
     init_R_list();
 
-    dump_basis_set();
-    dump_atom_list();
+    if (debug) {
+        dump_basis_set();
+        dump_atom_list();
+    }
 
     return true;
 }
@@ -156,7 +162,9 @@ load_geom_file(const char * file)
 
     geom_file[st.st_size] = '\0';
 
-    fprintf(stderr, "loaded geom file:\n%s\n", geom_file);
+    if (debug) {
+        fprintf(stderr, "loaded geom file:\n%s\n", geom_file);
+    }
 
     close(fd);
 
@@ -823,4 +831,12 @@ nuclear_rep_energy(void)
     }
 
     return energy;
+}
+
+
+
+bool
+is_debug(void)
+{
+    return debug;
 }
