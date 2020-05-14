@@ -156,8 +156,9 @@ scf_procedure(const double * S,
         if (diff_energy < E_CONV) {
             printf("SCF converged at %zu iterations.\n", z);
             printf("Final GHF energy: %.9f\n", new_energy);
+            printf(" energy per atom: %.9f\n", new_energy / get_n_atoms());
             printf("  nuc rep energy: %.9f\n", nuc_energy);
-            printf("  dE:             %.9f\n", diff_energy);
+            printf("              dE: %.9f\n", diff_energy);
             printf("\n");
             printf("Total GHF energy: %.9f\n", new_energy + nuc_energy);
             return;
@@ -165,8 +166,8 @@ scf_procedure(const double * S,
         else if (!quiet) {
             printf("Iteration: %zu.\n", z);
             printf("  electronic energy: %.9f\n", new_energy);
-            printf("  nuc rep energy:    %.9f\n", nuc_energy);
-            printf("  dE:                %.9f\n", diff_energy);
+            printf("     nuc rep energy: %.9f\n", nuc_energy);
+            printf("                 dE: %.9f\n", diff_energy);
         }
 
         if (sleep_time) { sleep(sleep_time); }

@@ -20,7 +20,7 @@
 
 #define MAX_GEOM_FILE_SIZE 1024
 
-static double get_r_diff_sq(const r_t a, const r_t b);
+static double get_r_diff_sq(const r_t * a, const r_t * b);
 static void   get_Rp(r_t *Rp, const size_t mu, const size_t nu);
 static bool   get_next_float(double *v_p, const char **p_p);
 static bool   get_next_int(int *v_p, const char **p_p);
@@ -85,11 +85,6 @@ init_geom_basis(const char * file,
     if (!load_geom_file(file)) { return false; }
     if (!init_basis_set(file)) { return false; }
     if (!init_atom_list(file)) { return false; }
-
-    if (n_coeff == 0) {
-        fprintf(stderr, "error: n_coeff == 0, invalid basis\n");
-        return false;
-    }
 
     n_basis = n_atoms * n_coeff;
     atom_basis = safer_calloc(n_basis, sizeof(double), 0);
@@ -325,11 +320,15 @@ init_atom_list(const char * file)
 
     n_atoms = num_atoms;
 
+    if (n_atoms == 0) {
+        fprintf(stderr, "error: n_atoms == 0, invalid geom\n");
+        return false;
+    }
 
     p = strstr(geom_file, charge_tag);
 
     if (!p) {
-        fprintf(stderr, "info: assuming neutral charge\n");
+        printf("info: assuming neutral charge\n");
     }
     else {
         p += strlen(charge_tag);
@@ -395,6 +394,16 @@ load_shell(const char * p)
                 return false;
             }
         }
+    }
+
+    if (j == 0) {
+        fprintf(stderr, "error: empty basis listing: invalid basis\n");
+        return false;
+    }
+
+    if (n_coeff == 0) {
+        fprintf(stderr, "error: n_coeff == 0, invalid basis\n");
+        return false;
     }
 
     return true;
@@ -504,7 +513,7 @@ init_R_list(void)
     *                              {0.7344, 0, 0}};
     */
 
-    R_list = safer_calloc(n_basis, sizeof(r_t), 0);
+    R_list = safer_calloc(n_basis, sizeof(r_t), "init_R_list");
 
     for (size_t i = 0; i < n_atoms; ++i) {
         for (size_t j = 0; j < n_coeff; ++j) {
@@ -539,7 +548,7 @@ build_overlap(double * S)
 
             pref = pow((M_PI / b_sum), 1.5);
 
-            r_sq = get_r_diff_sq(R_list[i], R_list[j]);
+            r_sq = get_r_diff_sq(&R_list[i], &R_list[j]);
 
             d_exp = exp(-b_pro * r_sq / b_sum);
 
@@ -599,7 +608,7 @@ build_core_hamiltonian(double * H)
             b_sum = atom_basis[mu] + atom_basis[nu];
             b_prod = atom_basis[mu] * atom_basis[nu];
 
-            r_sq = get_r_diff_sq(R_list[mu], R_list[nu]);
+            r_sq = get_r_diff_sq(&R_list[mu], &R_list[nu]);
 
             t_1 = b_prod / b_sum;
             t_2 = 3 - r_sq * (2 * b_prod / b_sum);
@@ -632,13 +641,12 @@ build_core_hamiltonian(double * H)
             b_sum = atom_basis[mu] + atom_basis[nu];
             b_prod = atom_basis[mu] * atom_basis[nu];
 
-            r_sq = get_r_diff_sq(R_list[mu], R_list[nu]);
+            r_sq = get_r_diff_sq(&R_list[mu], &R_list[nu]);
 
             t_2 = exp(-r_sq * b_prod / b_sum);
 
             for (size_t c = 0; c < n_atoms; ++c) {
                 t_1 = - 2 * M_PI * atom_list[c].Z / b_sum;
-
 
                 if ((mu / n_coeff == nu / n_coeff) && (mu / n_coeff == c)) {
                     // mu, nu, c all same atom center. r diff will be zero.
@@ -647,7 +655,7 @@ build_core_hamiltonian(double * H)
                 else {
                     get_Rp(&Rp, mu, nu);
 
-                    t = b_sum * get_r_diff_sq(Rp, R_list[n_coeff * c]);
+                    t = b_sum * get_r_diff_sq(&Rp, &R_list[n_coeff * c]);
 
                     if (t != 0) {
                         fo = 0.5 * sqrt(M_PI / t) * erf(sqrt(t));
@@ -708,8 +716,8 @@ two_elec_int(const size_t a,
     double ab_prod = atom_basis[a] * atom_basis[b];
     double cd_prod = atom_basis[c] * atom_basis[d];
 
-    double r_sq_ab = get_r_diff_sq(R_list[a], R_list[b]);
-    double r_sq_cd = get_r_diff_sq(R_list[c], R_list[d]);
+    double r_sq_ab = get_r_diff_sq(&R_list[a], &R_list[b]);
+    double r_sq_cd = get_r_diff_sq(&R_list[c], &R_list[d]);
 
     r_t Rp;
     r_t Rq;
@@ -717,7 +725,7 @@ two_elec_int(const size_t a,
     get_Rp(&Rp, a, b);
     get_Rp(&Rq, c, d);
 
-    double r_sq_pq = get_r_diff_sq(Rp, Rq);
+    double r_sq_pq = get_r_diff_sq(&Rp, &Rq);
 
     double t_1 = 2 * pow(M_PI, 2.5);
     double t_2 = ab_sum * cd_sum * sqrt(abcd_sum);
@@ -767,12 +775,12 @@ build_density_matrix(double *       P,
 
 
 static double
-get_r_diff_sq(const r_t a,
-              const r_t b)
+get_r_diff_sq(const r_t * a,
+              const r_t * b)
 {
-    double x = a.x - b.x;
-    double y = a.y - b.y;
-    double z = a.z - b.z;
+    double x = a->x - b->x;
+    double y = a->y - b->y;
+    double z = a->z - b->z;
 
     return ((x * x) + (y * y) + (z * z));
 }
@@ -817,6 +825,14 @@ get_n_basis(void)
 
 
 
+size_t
+get_n_atoms(void)
+{
+    return n_atoms;
+}
+
+
+
 double
 nuclear_rep_energy(void)
 {
@@ -835,7 +851,7 @@ nuclear_rep_energy(void)
             Z_i = atom_list[i].Z;
             Z_j = atom_list[j].Z;
 
-            rsq = get_r_diff_sq(atom_list[i].R, atom_list[j].R);
+            rsq = get_r_diff_sq(&atom_list[i].R, &atom_list[j].R);
             rsq = sqrt(rsq);
 
             energy += Z_i * Z_j / rsq;
