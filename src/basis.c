@@ -611,6 +611,8 @@ build_core_hamiltonian(double * H)
         }
     }
 
+    if (debug) { print_matrix(T, n_basis, "T"); }
+
     //
     // Build normalized nuclear energy integrals:
     //
@@ -627,15 +629,16 @@ build_core_hamiltonian(double * H)
 
     for (size_t mu = 0; mu < n_basis; ++mu) {
         for (size_t nu = 0; nu < mu + 1; ++nu) {
+            b_sum = atom_basis[mu] + atom_basis[nu];
+            b_prod = atom_basis[mu] * atom_basis[nu];
+
+            r_sq = get_r_diff_sq(R_list[mu], R_list[nu]);
+
+            t_2 = exp(-r_sq * b_prod / b_sum);
+
             for (size_t c = 0; c < n_atoms; ++c) {
-                b_sum = atom_basis[mu] + atom_basis[nu];
-                b_prod = atom_basis[mu] * atom_basis[nu];
-
-                r_sq = get_r_diff_sq(R_list[mu], R_list[nu]);
-
                 t_1 = - 2 * M_PI * atom_list[c].Z / b_sum;
 
-                t_2 = exp(-r_sq * b_prod / b_sum);
 
                 if ((mu / n_coeff == nu / n_coeff) && (mu / n_coeff == c)) {
                     // mu, nu, c all same atom center. r diff will be zero.
@@ -645,7 +648,14 @@ build_core_hamiltonian(double * H)
                     get_Rp(&Rp, mu, nu);
 
                     t = b_sum * get_r_diff_sq(Rp, R_list[n_coeff * c]);
-                    fo = 0.5 * sqrt(M_PI / t) * erf(sqrt(t));
+
+                    if (t != 0) {
+                        fo = 0.5 * sqrt(M_PI / t) * erf(sqrt(t));
+                    }
+                    else {
+                        // mu, nu, c all same atom center. r diff will be zero.
+                        fo = 1;
+                    }
                 }
 
                 Z[mu * n_basis + nu] += (norm_l[mu] * norm_l[nu] * t_1
@@ -655,6 +665,8 @@ build_core_hamiltonian(double * H)
             Z[nu * n_basis + mu] = Z[mu * n_basis + nu];
         }
     }
+
+    if (debug) { print_matrix(Z, n_basis, "Z"); }
 
     sum_mat(H, T, Z, n_basis);
 

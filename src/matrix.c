@@ -149,6 +149,16 @@ call_dsyev(double * C,
 
     work = safer_calloc(lwork, sizeof(double), 0);
 
+    /*
+    *  dsyev.f comments:
+    *     INFO is INTEGER
+    *   = 0:  successful exit
+    *   < 0:  if INFO = -i, the i-th argument had an illegal value
+    *   > 0:  if INFO = i, the algorithm failed to converge; i
+    *         off-diagonal elements of an intermediate tridiagonal
+    *         form did not converge to zero.
+    */
+
     dsyev_("V", "U", &n, C, &lda, eig_val, work, &lwork, &info);
 
     free(work);
