@@ -15,25 +15,6 @@
 #define MAX_ITER        20
 #define GHF_MAX_THREADS 64
 
-struct fock_matrix_t {
-    /*
-    * Fock matrix is nbasis * nbasis square matrix.
-    *
-    * F is the actual Fock matrix array.
-    *
-    * in_memory indicates if 2-electron integrals are stored
-    * or re-calculated on the fly.
-    *
-    * The make_fock callback is loaded based on the type of
-    * SCF calculation to be performed.
-    */
-
-    size_t     nbasis;
-    double *   F;
-    bool       in_memory;
-    void     (*make_fock)(struct fock_matrix_t *f, const double *P);
-};
-
 static void   print_usage_and_die(void) __attribute__((__noreturn__));
 static void   build_overlap_matrices(double * S, double * X, double * Y);
 static void   scf_procedure(const double * S, const double * X,
@@ -41,6 +22,7 @@ static void   scf_procedure(const double * S, const double * X,
 static void   population_analysis(const double * P, const double * S,
                                   const double * Y);
 static void   build_fock(double * F, const double * H, const double * P);
+static void   build_G_matrix(double *G, const double *P);
 static void   diag_fock(double * C, const double * F, const double * X);
 static double hartree_fock_energy(const double * P, const double * H,
                                   const double * F);
@@ -126,8 +108,8 @@ main(int    argc,
     double * H = safer_calloc(n_basis * n_basis, sizeof(double), 0);
 
     build_overlap_matrices(S, X, Y);
-
     build_core_hamiltonian(H);
+
     if (debug) { print_matrix(H, n_basis, "Core Hamiltonian"); }
 
     scf_procedure(S, X, Y, H);
@@ -265,17 +247,40 @@ build_fock(double *       F,
            const double * H,
            const double * P)
 {
+    double * G = safer_calloc(n_basis * n_basis, sizeof(double), "G matrix");
+
+    build_G_matrix(G, P);
+    sum_mat(F, H, G, n_basis);
+
+    if (debug) { print_matrix(H, n_basis, "H"); }
+    if (debug) { print_matrix(G, n_basis, "G"); }
+    if (debug) { print_matrix(F, n_basis, "Fock matrix"); }
+
+    free(G);
+
+    return;
+}
+
+
+
+static void
+build_G_matrix(double *       G,
+               const double * P)
+{
+    //
+    // Build the 2-electron part of the Fock matrix:
+    //   Fij = Hij + Gij
+    //
+
     #pragma omp parallel for num_threads(threads)
     for (size_t i = 0; i < n_basis; ++i) {
         for (size_t j = 0; j < n_basis; ++j) {
-            F[i * n_basis + j] = H[i * n_basis + j];
-
             for (size_t k = 0; k < n_basis; ++k) {
                 for (size_t l = 0; l < n_basis; ++l ) {
-                    F[i * n_basis + j] += P[k * n_basis + l] *
+                    G[i * n_basis + j] += P[k * n_basis + l] *
                                           two_elec_int(i, j, k, l);
 
-                    F[i * n_basis + j] -= 0.5 *
+                    G[i * n_basis + j] -= 0.5 *
                                           P[k * n_basis + l] *
                                           two_elec_int(i, k, j, l);
 
@@ -283,8 +288,6 @@ build_fock(double *       F,
             }
         }
     }
-
-    if (debug) { print_matrix(F, n_basis, "Fock matrix"); }
 
     return;
 }

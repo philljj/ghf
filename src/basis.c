@@ -581,7 +581,14 @@ build_overlap(double * S)
 void
 build_core_hamiltonian(double * H)
 {
-    // Build core Hamiltonian.
+    //
+    // Build the 1-electron core Hamiltonian, H, where
+    //
+    //   Hij = Tij + Zij
+    //
+    // and T, Z, are the kinetic energy and nuclear attraction components.
+    //
+
     double * T = safer_calloc(n_basis * n_basis, sizeof(double), 0);
     double * Z = safer_calloc(n_basis * n_basis, sizeof(double), 0);
 
@@ -661,7 +668,7 @@ build_core_hamiltonian(double * H)
                         fo = 0.5 * sqrt(M_PI / t) * erf(sqrt(t));
                     }
                     else {
-                        // mu, nu, c all same atom center. r diff will be zero.
+                        // Rp and Rc are same atom center. r diff will be zero.
                         fo = 1;
                     }
                 }
@@ -676,6 +683,7 @@ build_core_hamiltonian(double * H)
 
     if (debug) { print_matrix(Z, n_basis, "Z"); }
 
+    // Finally, build Hij = Tij + Zij
     sum_mat(H, T, Z, n_basis);
 
     free(T);
@@ -735,9 +743,11 @@ two_elec_int(const size_t a,
 
     double fo = 1;
 
-    // TODO: dumb hack.
-    if (t > 0.0001) {
+    if (t != 0) {
         fo = 0.5 * sqrt(M_PI / t) * erf(sqrt(t));
+    }
+    else {
+        fo = 1;
     }
 
     result = norm_l[a] * norm_l[b] * norm_l[c] * norm_l[d] *
