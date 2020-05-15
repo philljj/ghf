@@ -1,0 +1,6 @@
+#!/bin/bash
+cd ../; ./build linux; cd run
+time bin/ghf -f geom/he.geom -t 4 -q
+time bin/ghf -f geom/he2.geom -t 4 -q
+time bin/ghf -f geom/he4.geom -t 4 -q
+time bin/ghf -f geom/he8.geom -t 4 -q

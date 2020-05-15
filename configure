@@ -21,3 +21,4 @@ dir_exists $run_dir
 dir_exists $bin_dir
 dir_exists $geom_dir
 cp -r geom/*  $geom_dir
+cp sanity_test $run_dir

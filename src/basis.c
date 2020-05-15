@@ -790,11 +790,20 @@ static double
 get_r_diff_sq(const r_t * a,
               const r_t * b)
 {
+    // I haven't found any timing difference between
+    // these two. Choosing readability for now.
+
+    // More readable.
     double x = a->x - b->x;
     double y = a->y - b->y;
     double z = a->z - b->z;
 
     return ((x * x) + (y * y) + (z * z));
+
+    // Less readable.
+    // return (((a->x - b->x) * (a->x - b->x))
+    //       + ((a->y - b->y) * (a->y - b->y))
+    //       + ((a->z - b->z) * (a->z - b->z)));
 }
 
 
