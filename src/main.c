@@ -11,8 +11,9 @@
 #include "matrix.h"
 #include "util.h"
 
-#define E_CONV   0.000000001
-#define MAX_ITER 20
+#define E_CONV          0.000000001
+#define MAX_ITER        20
+#define GHF_MAX_THREADS 64
 
 struct fock_matrix_t {
     /*
@@ -49,6 +50,7 @@ static bool   debug = false;
 static size_t n_basis = 0;
 static bool   quiet = false;
 static size_t sleep_time = 0;
+static size_t threads = 1;
 
 
 
@@ -61,7 +63,6 @@ main(int    argc,
     }
 
     int          opt = 0;
-    size_t       threads = 0;
     const char * input_file = 0;
 
     while ((opt = getopt(argc, argv, "dqsf:t:?")) != -1) {
@@ -92,6 +93,16 @@ main(int    argc,
         default:
             print_usage_and_die();
         }
+    }
+
+    if (threads == 0) {
+        fprintf(stderr, "error: threads == 0 is invalid\n");
+        return EXIT_FAILURE;
+    }
+
+    if (threads > GHF_MAX_THREADS ) {
+        fprintf(stderr, "error: threads > %d is invalid\n", GHF_MAX_THREADS);
+        return EXIT_FAILURE;
     }
 
     if (!quiet) {
@@ -254,7 +265,7 @@ build_fock(double *       F,
            const double * H,
            const double * P)
 {
-
+    #pragma omp parallel for num_threads(threads)
     for (size_t i = 0; i < n_basis; ++i) {
         for (size_t j = 0; j < n_basis; ++j) {
             F[i * n_basis + j] = H[i * n_basis + j];

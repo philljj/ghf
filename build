@@ -34,7 +34,7 @@ if [ $os == "macos" ]; then
   gcc -std=c99 -Wall -Wextra -lm src/*.c -framework Accelerate -o $bin_dir/ghf
 elif [ $os == "linux" ]; then
   echo "building for linux"
-  gcc -std=c99 -g -ggdb -Wall -Wextra -lm -llapacke -llapack src/*.c -o $bin_dir/ghf
+  gcc -std=c99 -g -ggdb -fopenmp -Wall -Wextra -lm -llapacke -llapack src/*.c -o $bin_dir/ghf
 else
   echo "tell me how to build on $os"
   exit 1
