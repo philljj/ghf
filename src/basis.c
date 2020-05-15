@@ -689,6 +689,8 @@ build_core_hamiltonian(double * H)
     free(T);
     free(Z);
 
+    if (debug) { print_matrix(H, n_basis, "Core Hamiltonian"); }
+
     return;
 }
 

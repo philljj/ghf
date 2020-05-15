@@ -109,10 +109,12 @@ main(int    argc,
 
     build_overlap_matrices(S, X, Y);
     build_core_hamiltonian(H);
-
-    if (debug) { print_matrix(H, n_basis, "Core Hamiltonian"); }
-
     scf_procedure(S, X, Y, H);
+
+    free(H);
+    free(Y);
+    free(X);
+    free(S);
 
     return EXIT_SUCCESS;
 }
