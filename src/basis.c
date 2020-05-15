@@ -51,6 +51,10 @@ static char         geom_file[MAX_GEOM_FILE_SIZE];
 static const char * basis_tag = "basis\n";
 static const char * charge_tag = "charge\n";
 static const char * geom_tag = "geometry\n";
+static size_t       n_basis_quad = 0;
+static size_t       n_basis_cub = 0;
+static size_t       n_basis_sq = 0;
+
 
 /*
 /
@@ -96,6 +100,10 @@ init_geom_basis(const char * file,
     }
 
     norm_l = safer_calloc(n_basis, sizeof(double), 0);
+
+    n_basis_quad = n_basis * n_basis * n_basis * n_basis;
+    n_basis_cub =  n_basis * n_basis * n_basis;
+    n_basis_sq =   n_basis * n_basis;
 
     init_R_list();
 
@@ -757,6 +765,8 @@ two_elec_int(const size_t a,
 
     return result;
 }
+
+
 
 
 

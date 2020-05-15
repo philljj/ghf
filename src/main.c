@@ -9,6 +9,7 @@
 
 #include "basis.h"
 #include "matrix.h"
+#include "g_matrix.h"
 #include "util.h"
 
 #define E_CONV          0.000000001
@@ -22,7 +23,7 @@ static void   scf_procedure(const double * S, const double * X,
 static void   population_analysis(const double * P, const double * S,
                                   const double * Y);
 static void   build_fock(double * F, const double * H, const double * P);
-static void   build_G_matrix(double *G, const double *P);
+static void (*build_G_matrix)(double *G, const double *P);
 static void   diag_fock(double * C, const double * F, const double * X);
 static double hartree_fock_energy(const double * P, const double * H,
                                   const double * F);
@@ -33,6 +34,7 @@ static size_t n_basis = 0;
 static bool   quiet = false;
 static size_t sleep_time = 0;
 static size_t threads = 1;
+static bool   in_memory = false;
 
 
 
@@ -47,10 +49,14 @@ main(int    argc,
     int          opt = 0;
     const char * input_file = 0;
 
-    while ((opt = getopt(argc, argv, "dqsf:t:?")) != -1) {
+    while ((opt = getopt(argc, argv, "dmqsf:t:?")) != -1) {
         switch (opt) {
         case 'd':
             debug = true;
+            break;
+
+        case 'm':
+            in_memory = true;
             break;
 
         case 'f':
@@ -109,12 +115,26 @@ main(int    argc,
 
     build_overlap_matrices(S, X, Y);
     build_core_hamiltonian(H);
+
+    if (in_memory) {
+        printf("info: storing two-electron integrals in memory\n");
+        build_G_matrix = build_G_matrix_in_memory;
+        precalculate_two_elec_int(threads);
+    }
+    else {
+        build_G_matrix = build_G_matrix_on_the_fly;
+    }
+
     scf_procedure(S, X, Y, H);
 
     free(H);
     free(Y);
     free(X);
     free(S);
+
+    if (in_memory) {
+        free_two_elec_int();
+    }
 
     return EXIT_SUCCESS;
 }
@@ -170,7 +190,6 @@ scf_procedure(const double * S,
 
     return;
 }
-
 
 
 
@@ -259,37 +278,6 @@ build_fock(double *       F,
     if (debug) { print_matrix(F, n_basis, "Fock matrix"); }
 
     free(G);
-
-    return;
-}
-
-
-
-static void
-build_G_matrix(double *       G,
-               const double * P)
-{
-    //
-    // Build the 2-electron part of the Fock matrix:
-    //   Fij = Hij + Gij
-    //
-
-    #pragma omp parallel for num_threads(threads)
-    for (size_t i = 0; i < n_basis; ++i) {
-        for (size_t j = 0; j < n_basis; ++j) {
-            for (size_t k = 0; k < n_basis; ++k) {
-                for (size_t l = 0; l < n_basis; ++l ) {
-                    G[i * n_basis + j] += P[k * n_basis + l] *
-                                          two_elec_int(i, j, k, l);
-
-                    G[i * n_basis + j] -= 0.5 *
-                                          P[k * n_basis + l] *
-                                          two_elec_int(i, k, j, l);
-
-                }
-            }
-        }
-    }
 
     return;
 }
