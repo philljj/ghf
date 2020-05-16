@@ -4,6 +4,7 @@
 
 #include "basis.h"
 #include "matrix.h"
+#include "options.h"
 #include "util.h"
 
 extern void dsyev_(char* jobz, char* uplo, int* n, double* a, int* lda,

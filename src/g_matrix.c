@@ -6,6 +6,7 @@
 #include "basis.h"
 #include "matrix.h"
 #include "g_matrix.h"
+#include "options.h"
 #include "util.h"
 
 static double two_elec_int_in_mem(const size_t a, const size_t b,
@@ -16,19 +17,18 @@ static size_t   n_basis_sq = 0;
 static size_t   n_basis_cub = 0;
 static size_t   n_basis_quad = 0;
 static double * v_ao = 0;
-static size_t   threads = 1;
 
 
 
 void
-precalculate_two_elec_int(size_t opt_threads)
+precalculate_two_elec_int(void)
 {
     if (v_ao) {
         fprintf(stderr, "error: double initialization of v_ao\n");
         exit(EXIT_FAILURE);
     }
 
-    threads = opt_threads;
+    size_t threads = num_threads();
 
     n_basis = get_n_basis();
 
@@ -38,7 +38,7 @@ precalculate_two_elec_int(size_t opt_threads)
 
     v_ao = safer_calloc(n_basis_quad, sizeof(double), "init_R_list");
 
-    //#pragma omp parallel for num_threads(threads)
+    #pragma omp parallel for num_threads(threads)
     for (size_t i = 0; i < n_basis; ++i) {
         for (size_t j = 0; j < n_basis; ++j) {
             for (size_t k = 0; k < n_basis; ++k) {
@@ -89,6 +89,8 @@ build_G_matrix_in_memory(double *       G,
 
     if (n_basis == 0) { n_basis = get_n_basis(); }
 
+    size_t threads = num_threads();
+
     #pragma omp parallel for num_threads(threads)
     for (size_t i = 0; i < n_basis; ++i) {
         for (size_t j = 0; j < n_basis; ++j) {
@@ -121,6 +123,7 @@ build_G_matrix_on_the_fly(double *       G,
     //
 
     if (n_basis == 0) { n_basis = get_n_basis(); }
+    size_t threads = num_threads();
 
     #pragma omp parallel for num_threads(threads)
     for (size_t i = 0; i < n_basis; ++i) {

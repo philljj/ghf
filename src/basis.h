@@ -34,5 +34,4 @@ void   build_density_matrix(double * P, const double * C);
 double nuclear_rep_energy(void);
 size_t get_n_basis(void);
 size_t get_n_atoms(void);
-bool   is_debug(void);
 #endif /* if !defined(BASIS_H) */

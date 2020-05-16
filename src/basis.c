@@ -182,41 +182,20 @@ init_basis_set(const char * file)
     memset(basis_set.exp, 0, sizeof(basis_set.exp));
 
     const char * p = strstr(geom_file, basis_tag);
-    const char * start = p;
-    const char * end = strstr(geom_file, geom_tag);
 
     if (!p) {
         fprintf(stderr, "error: invalid geometry file %s\n", file);
         return false;
     }
 
-    if (!end) {
-        fprintf(stderr, "error: geometry not listed in file %s\n", file);
-        return false;
-    }
-
     p += strlen(basis_tag);
+    p = skip_space(p);
 
-    while (*p != '\0') {
-        if ((p - start) == (end - start)) {
-            // end of basis listing
-            break;
-        }
-        else if (isdigit(*p)) {
-            if (load_shell(p)) {
-                p = skip_line(p);
-            }
-            else {
-                fprintf(stderr, "error: invalid basis listing: %s\n", p);
-                return false;
-            }
-        }
-        else {
-            p = skip_line(p);
-        }
+    if (isdigit(*p)) {
+        return load_shell(p);
     }
 
-    return true;
+    return false;
 }
 
 
@@ -890,12 +869,4 @@ nuclear_rep_energy(void)
     }
 
     return energy;
-}
-
-
-
-bool
-is_debug(void)
-{
-    return debug;
 }
