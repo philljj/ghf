@@ -1,3 +1,4 @@
+
 About:
   This is a Hartree-Fock implementation, based on Szabo/Ostlund's
   classic "Modern Quantum Chemistry". The Hartee-Fock method
@@ -10,12 +11,29 @@ About:
   support RHF, UHF, and GHF, and eventually to support DFT or GF2
   as well.
   
-  lapack is required. Eventually, OpenMP will be required as well.
+  lapack is required. OpenMP is required on linux.
 
   This only works on linux and macos.
+
 
 Setup:
   1. run configure script
   2. run build script
   3. drink espresso
   4. that's it
+
+
+References used:
+  1. Modern Quantum Chemistry
+       Szabo and Ostlund
+
+  2. Noncollinear Magnetism in Density Functional Calculations
+       Juan E. Peralta, Gustavo E. Scuseria, Michael J. Frisch
+       https://arxiv.org/abs/cond-mat/0612604
+       https://journals.aps.org/prb/abstract/10.1103/PhysRevB.75.125119
+
+  3. Fractional charge and spin errors in self-consistent Green's function theory
+       Jordan J. Phillips, Alexei A. Kananenka, Dominika Zgid
+       https://arxiv.org/abs/1503.04148
+       https://aip.scitation.org/doi/abs/10.1063/1.4921259?journalCode=jcp
+
