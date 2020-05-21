@@ -31,7 +31,6 @@ static bool   load_geom_file(const char * file);
 static bool   load_shell(const char * p);
 static void   dump_basis_set(void);
 static void   dump_atom_list(void);
-static const char * skip_line(const char * p);
 static const char * skip_space(const char * p);
 static const char * skip_float(const char * p);
 static const char * skip_int(const char * p);
@@ -432,6 +431,7 @@ dump_atom_list()
     return;
 }
 
+#if 0
 
 
 const char *
@@ -443,6 +443,7 @@ skip_line(const char * p)
 
     return p;
 }
+#endif
 
 
 
