@@ -746,13 +746,11 @@ two_elec_int(const size_t a,
     return result;
 }
 
-
-
 
 
 void
-build_density_matrix(double *       P,
-                     const double * C)
+build_density_matrix_ghf(spin_matrix_t *  P,
+                         const spinor_t * C)
 {
     //
     // Given coefficient matrix C, build density matrix
@@ -760,13 +758,32 @@ build_density_matrix(double *       P,
     //   P_ij = 2 Sum[ C_ia * C_ja, a, 0, N_elec / 2]
     //
 
+    build_density_matrix(P->uu, C->u, C->u, n_ele, 1);
+    build_density_matrix(P->dd, C->d, C->d, n_ele, 1);
+    build_density_matrix(P->ud, C->u, C->d, n_ele, 1);
+    build_density_matrix(P->du, C->d, C->u, n_ele, 1);
+
+    return;
+}
+
+
+
+void
+build_density_matrix(double *       P,
+                     const double * Cx,
+                     const double * Cz,
+                     const size_t   n_ele,
+                     const size_t   occupancy)
+{
+    size_t n_mo = n_ele / occupancy;
+
     for (size_t i = 0; i < n_basis; ++i) {
         for (size_t j = 0; j < n_basis; ++j) {
             P[i * n_basis + j] = 0;
 
-            for (size_t a = 0; a <  n_ele / 2; ++a) {
-                P[i * n_basis + j] += 2 * C[i * n_basis + a] *
-                                          C[j * n_basis + a];
+            for (size_t a = 0; a <  n_mo ; ++a) {
+                P[i * n_basis + j] += occupancy * Cx[i * n_basis + a]
+                                                * Cz[j * n_basis + a];
             }
         }
     }
