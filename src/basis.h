@@ -31,7 +31,7 @@ void build_core_hamiltonian(double * H);
 double two_elec_int(const size_t a, const size_t b,
                     const size_t c, const size_t d);
 void   build_density_matrix_ghf(spin_matrix_t *  P, const spinor_t * C)
-void   build_density_matrix(double * P, const double * Cx,
+void   build_dens_mat_block(double * P, const double * Cx,
                             const double * Cz, const size_t n_ele,
                             const size_t occupancy)
 double nuclear_rep_energy(void);

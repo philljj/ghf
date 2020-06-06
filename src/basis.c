@@ -749,19 +749,29 @@ two_elec_int(const size_t a,
 
 
 void
-build_density_matrix_ghf(spin_matrix_t *  P,
-                         const spinor_t * C)
+build_density_matrix(spin_matrix_t *  P,
+                     const spinor_t * C)
 {
-    //
-    // Given coefficient matrix C, build density matrix
-    //
-    //   P_ij = 2 Sum[ C_ia * C_ja, a, 0, N_elec / 2]
-    //
+    switch (get_hf_type()) {
+    case RHF:
+        return build_dens_mat_rhf(P, C);
+    case UHF:
+        return build_dens_mat_uhf(P, C);
+    case GHF:
+        return build_dens_mat_ghf(P, C);
+    }
+}
 
-    build_density_matrix(P->uu, C->u, C->u, n_ele, 1);
-    build_density_matrix(P->dd, C->d, C->d, n_ele, 1);
-    build_density_matrix(P->ud, C->u, C->d, n_ele, 1);
-    build_density_matrix(P->du, C->d, C->u, n_ele, 1);
+
+
+void
+build_dens_mat_rhf(spin_matrix_t *  P,
+                   const spinor_t * C)
+{
+    size_t occupancy = 2;
+    size_t n_ele = P->n_ele;
+
+    build_dens_mat_block(P->uu, C->u, C->u, n_ele, occupancy);
 
     return;
 }
@@ -769,12 +779,51 @@ build_density_matrix_ghf(spin_matrix_t *  P,
 
 
 void
-build_density_matrix(double *       P,
+build_dens_mat_uhf(spin_matrix_t *  P,
+                   const spinor_t * C)
+{
+    size_t occupancy = 1;
+    size_t n_ele_u = P->n_ele_u;
+    size_t n_ele_d = P->n_ele_d;
+
+    build_dens_mat_block(P->uu, C->u, C->u, n_ele_u, occupancy);
+    build_dens_mat_block(P->dd, C->d, C->d, n_ele_d, occupancy);
+
+    return;
+}
+
+
+
+void
+build_dens_mat_ghf(spin_matrix_t *  P,
+                   const spinor_t * C)
+{
+    size_t occupancy = 1;
+    size_t n_ele = P->n_ele;
+
+    build_dens_mat_block(P->uu, C->u, C->u, n_ele, occupancy);
+    build_dens_mat_block(P->dd, C->d, C->d, n_ele, occupancy);
+    build_dens_mat_block(P->ud, C->u, C->d, n_ele, occupancy);
+    build_dens_mat_block(P->du, C->d, C->u, n_ele, occupancy);
+
+    return;
+}
+
+
+
+void
+build_dens_mat_block(double *       P,
                      const double * Cx,
-                     const double * Cz,
+                     const double * Cy,
                      const size_t   n_ele,
                      const size_t   occupancy)
 {
+    //
+    // Given coefficient matrix C, build density matrix
+    //
+    //   P_ij = 2 Sum[ C_ia * C_ja, a, 0, N_elec / occupancy]
+    //
+
     size_t n_mo = n_ele / occupancy;
 
     for (size_t i = 0; i < n_basis; ++i) {
@@ -783,7 +832,7 @@ build_density_matrix(double *       P,
 
             for (size_t a = 0; a <  n_mo ; ++a) {
                 P[i * n_basis + j] += occupancy * Cx[i * n_basis + a]
-                                                * Cz[j * n_basis + a];
+                                                * Cy[j * n_basis + a];
             }
         }
     }

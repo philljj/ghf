@@ -126,7 +126,7 @@ get_sleep_time(void)
 
 
 
-enum hf_type
+hf_type_t
 get_hf_type(void)
 {
     return opts.type;
