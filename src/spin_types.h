@@ -17,9 +17,9 @@ struct spin_matrix_t {
     double *  du;
     double *  dd;
     size_t    n_basis;
-    size_t    n_ele_u;
-    size_t    n_ele_d;
-    size_t    n_ele;
+    size_t    n_ele_u; /* only used in UHF */
+    size_t    n_ele_d; /* only used in UHF */
+    size_t    n_ele;   /* only used in RHF or GHF */
 }
 
 typedef struct spin_matrix_t spin_matrix_t;

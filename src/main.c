@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "basis.h"
+#include "density_matrix.h"
 #include "matrix.h"
 #include "g_matrix.h"
 #include "options.h"
@@ -27,6 +28,7 @@ static void (*build_G_matrix)(double *G, const double *P);
 static void   diag_fock(double * C, const double * F, const double * X);
 static double hartree_fock_energy(const double * P, const double * H,
                                   const double * F);
+static void * new_spin_matrix(void);
 
 static size_t n_basis = 0;
 
@@ -297,4 +299,36 @@ hartree_fock_energy(const double * P,
     }
 
     return energy;
+}
+
+
+
+static void *
+new_spin_matrix(void)
+{
+    spin_matrix_t * P = safer_calloc(1, sizeof(spin_matrix_t), 0);
+
+    P->n_basis = n_basis;
+
+    switch (get_hf_type()) {
+    case RHF:
+        P->uu = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+        P->n_ele = n_ele;
+        break;
+    case UHF:
+        P->n_ele_u = n_ele_u;
+        P->n_ele_d = n_ele_d;
+        P->uu = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+        P->dd = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+        break;
+    case GHF:
+        P->n_ele = n_ele;
+        P->uu = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+        P->dd = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+        P->ud = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+        P->du = safer_calloc(n_basis * n_basis, sizeof(double), 0);
+        break;
+    }
+
+    return P;
 }
